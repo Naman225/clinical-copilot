@@ -72,3 +72,6 @@ Thumbs.db
 
 ## Data
 data_ingestion/
+cpu_extracted_cache.json
+extracted_images/
+db/

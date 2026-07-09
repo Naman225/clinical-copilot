@@ -5,6 +5,10 @@ from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling.datamodel.pipeline_options import PdfPipelineOptions   
 from docling.datamodel.base_models import InputFormat
 from dataclasses import dataclass
+from docling.datamodel.pipeline_options import PdfPipelineOptions
+from docling.datamodel.accelerator_options import AcceleratorOptions, AcceleratorDevice
+
+
 EMBED_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 @dataclass
 class ExtractedImage:
@@ -23,8 +27,12 @@ def load_pdf(
 
     img_dir = Path(image_output_dir) / patient_id
     img_dir.mkdir(parents=True, exist_ok=True)
-
+    cpu_accelerator = AcceleratorOptions(
+        num_threads=4,                     
+        device=AcceleratorDevice.CPU        
+    )
     options = PdfPipelineOptions()
+    options.accelerator_options = cpu_accelerator
     options.generate_picture_images = True
     options.images_scale = 2.0
     options.do_table_structure = True
@@ -46,7 +54,7 @@ def load_pdf(
     }
 
     ## Text + tables extraction
-    chunker = HybridChunker(tokenizer=EMBED_MODEL_ID)
+    chunker = HybridChunker(tokenizer=EMBED_MODEL_ID, max_tokens=400)
     text_docs = []
     page_text_map = {}
 
@@ -90,9 +98,12 @@ def load_pdf(
             continue
         
         img_path = img_dir / f"image_{i}.png"
-        pil_img = picture.get_image(doc) 
-        if pil_img:
-            pil_img.save(str(img_path))
+        if not img_path.exists():
+            pil_img = picture.get_image(doc) 
+            if pil_img:
+                pil_img.save(str(img_path))
+        else:
+            print(f"    ⏭️  Image already exists: {img_path.name}")
 
         img_page = 0
         if hasattr(picture, "prov") and picture.prov:
