@@ -63,12 +63,12 @@ def load_reference_path(
             file_docs = loader.load()
 
             all_extracted_docs.extend(file_docs)
-            all_extracted_docs = filter_complex_metadata(all_extracted_docs)
             
         except Exception as e:
             print(f" Error parsing file {Path(path_str).name}: {str(e)}")
             continue
 
+        all_extracted_docs = filter_complex_metadata(all_extracted_docs)
     for doc in all_extracted_docs:
         doc.metadata["domain"] = domain
         doc.metadata["patient_id"] = "GLOBAL" 

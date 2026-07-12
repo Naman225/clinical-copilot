@@ -5,9 +5,8 @@ from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling.datamodel.pipeline_options import PdfPipelineOptions   
 from docling.datamodel.base_models import InputFormat
 from dataclasses import dataclass
-from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.datamodel.accelerator_options import AcceleratorOptions, AcceleratorDevice
-
+from langchain_community.vectorstores.utils import filter_complex_metadata
 
 EMBED_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 @dataclass
@@ -122,6 +121,7 @@ def load_pdf(
             patient_id=patient_id,
             source=pdf_path
         ))
-
+    
+    text_docs = filter_complex_metadata(text_docs)
     return text_docs, image_stubs
 
