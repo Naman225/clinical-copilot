@@ -68,12 +68,16 @@ def load_reference_path(
             print(f" Error parsing file {Path(path_str).name}: {str(e)}")
             continue
 
-        all_extracted_docs = filter_complex_metadata(all_extracted_docs)
+    all_extracted_docs = filter_complex_metadata(all_extracted_docs)
     for doc in all_extracted_docs:
         doc.metadata["domain"] = domain
         doc.metadata["patient_id"] = "GLOBAL" 
         doc.metadata["content_type"] = (
-            "table" if ("|" in doc.page_content and "---" in doc.page_content)
+            "table" if (
+                ("|" in doc.page_content and "---" in doc.page_content)
+                or doc.page_content.count("Result =") >= 2
+                or doc.page_content.count("Unit =") >= 2
+            )
             else "text"
         )
 

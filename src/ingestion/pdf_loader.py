@@ -76,7 +76,19 @@ def load_pdf(
         page_text_map[page_num] += f" {content}"
 
         headings = getattr(chunk.meta, "headings", []) if chunk.meta else []
-        content_type = "table" if ("|" in content and "---" in content) else "text"
+
+        # Use Docling's own label as primary signal for content type
+        doc_item_labels = []
+        if (hasattr(chunk, "meta") and chunk.meta
+                and hasattr(chunk.meta, "doc_items") and chunk.meta.doc_items):
+            for di in chunk.meta.doc_items:
+                if hasattr(di, "label"):
+                    doc_item_labels.append(str(di.label))
+
+        if "table" in doc_item_labels:
+            content_type = "table"
+        else:
+            content_type = "text"
 
         text_docs.append(Document(
             page_content=content,
@@ -102,7 +114,7 @@ def load_pdf(
             if pil_img:
                 pil_img.save(str(img_path))
         else:
-            print(f"    ⏭️  Image already exists: {img_path.name}")
+            print(f"Image already exists: {img_path.name}")
 
         img_page = 0
         if hasattr(picture, "prov") and picture.prov:

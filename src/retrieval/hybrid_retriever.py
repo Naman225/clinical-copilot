@@ -4,7 +4,6 @@ from langchain_classic.retrievers import EnsembleRetriever, ContextualCompressio
 from langchain_community.document_compressors.flashrank_rerank import FlashrankRerank
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
-import chromadb
 
 RERANK_MODEL = "ms-marco-MiniLM-L-12-v2"
 
