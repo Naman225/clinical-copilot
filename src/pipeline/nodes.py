@@ -29,7 +29,10 @@ def retrieve_node(state):
         collections= state["collections_to_search"],
         vector_stores= state["vector_stores"]
     )
-    print(f"[Node 3 - Retrieve] Got {len(chunks)} chunks")
+    if not chunks:
+        print(f"[Node 3 - Retrieve] ⚠️  No records found for patient_id='{state['patient_id']}'")
+    else:
+        print(f"[Node 3 - Retrieve] Got {len(chunks)} chunks")
     return {**state, "retrieved_chunks": chunks}
 
 
@@ -86,6 +89,16 @@ def reformat_chunk(doc) -> str:
 
 ## Node - 4 --
 def generate_node(state):
+    
+    if not state["retrieved_chunks"]:
+        no_data_msg = (
+            f"No medical records were found for patient ID '{state['patient_id']}'. "
+            f"Please verify the patient ID and try again. "
+            f"No clinical data can be provided without matching records."
+        )
+        print(f"[Node 4 - Generate] No data — returning safe message")
+        return {**state, "answer": no_data_msg, "sources": []}
+
     context_blocks = []
     sources = []
 
@@ -144,6 +157,12 @@ def _extract_numbers(text: str) -> set[str]:
 
 ## Node - 5 --
 def verify_node(state):
+
+    # If no chunks were retrieved (patient not found), the answer is a safe
+    # system-generated message — mark as grounded and skip verification.
+    if not state.get("retrieved_chunks"):
+        print(f"[Node 5 - Verify] No data retrieved — marking as grounded (safe message)")
+        return {**state, "is_grounded": True, "retry_count": state["retry_count"] + 1}
 
     not_found = [
         "do not contain",

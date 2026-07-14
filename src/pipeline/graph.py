@@ -52,3 +52,46 @@ def build_graph():
     )
     return graph.compile()
 
+## For app.py
+
+_embedder = None
+_vector_stores = None
+_pipeline = None
+
+def get_pipeline():
+    global _embedder, _vector_stores, _pipeline
+    if _pipeline is None:
+        print("Loading pipeline resources...")
+        _embedder = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_kwargs={"device": "cpu"},
+            encode_kwargs={"normalize_embeddings": True}
+        )
+        _vector_stores = load_vector_stores("./db", _embedder)
+        _pipeline = build_graph()
+        print("Pipeline ready.")
+    return _pipeline, _embedder, _vector_stores
+
+def run_pipeline(audio_path: str, patient_id: str) -> dict:
+    pipeline, embedder, vector_stores = get_pipeline()
+    result = pipeline.invoke({
+        "audio_path":             audio_path,
+        "patient_id":             patient_id,
+        "embedder":               embedder,
+        "vector_stores":          vector_stores,
+        "transcribed_query":      "",
+        "query_intent":           "",
+        "collections_to_search":  [],
+        "retrieved_chunks":       [],
+        "answer":                 "",
+        "sources":                [],
+        "is_grounded":            False,
+        "retry_count":            0
+    })
+    return {
+        "transcription": result["transcribed_query"],
+        "intent":        result["query_intent"],
+        "answer":        result["answer"],
+        "sources":       result["sources"],
+        "is_grounded":   result["is_grounded"]
+    }

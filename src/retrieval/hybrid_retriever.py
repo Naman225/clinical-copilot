@@ -71,6 +71,11 @@ def build_retriever(
 
         all_retrievers.append(semantic_retriever)
         all_bm25_docs.extend(bm25_docs)
+
+    # Guard: if no documents found at all (e.g. patient_id not in DB), return empty
+    if not all_bm25_docs:
+        print(f"[Retriever] No documents found for patient_id='{patient_id}' — returning empty.")
+        return []
     
     bm25_retrievers = BM25Retriever.from_documents(all_bm25_docs)
     bm25_retrievers.k = k * len(collections)
