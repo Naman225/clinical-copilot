@@ -95,3 +95,28 @@ def run_pipeline(audio_path: str, patient_id: str) -> dict:
         "sources":       result["sources"],
         "is_grounded":   result["is_grounded"]
     }
+
+def run_pipeline_text(text_query: str, patient_id: str) -> dict:
+    """Run the pipeline with a text query (skip Whisper transcription)."""
+    pipeline, embedder, vector_stores = get_pipeline()
+    result = pipeline.invoke({
+        "audio_path":             "",
+        "patient_id":             patient_id,
+        "embedder":               embedder,
+        "vector_stores":          vector_stores,
+        "transcribed_query":      text_query,   # pre-filled, skips transcribe
+        "query_intent":           "",
+        "collections_to_search":  [],
+        "retrieved_chunks":       [],
+        "answer":                 "",
+        "sources":                [],
+        "is_grounded":            False,
+        "retry_count":            0
+    })
+    return {
+        "transcription": text_query,
+        "intent":        result["query_intent"],
+        "answer":        result["answer"],
+        "sources":       result["sources"],
+        "is_grounded":   result["is_grounded"]
+    }

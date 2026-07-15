@@ -3,7 +3,7 @@ from src.pipeline.transcriber import MedicalTranscriber
 from src.retrieval.router import SemanticRouter
 from src.retrieval.hybrid_retriever import load_vector_stores, build_retriever
 from src.pipeline.prompts import CLINICAL_SYSTEM_PROMPT
-from langchain_ollama import ChatOllama
+from src.utils.config import get_llm
 
 IMAGE_CAPTION_MAX_CHARS = 500
 
@@ -99,10 +99,32 @@ def generate_node(state):
         print(f"[Node 4 - Generate] No data — returning safe message")
         return {**state, "answer": no_data_msg, "sources": []}
 
+    # ── Patient isolation guard ────────────────────────────────────
+    # The BM25 / ensemble retriever may return chunks from other
+    # patients (BM25 doesn't respect metadata filters).  Strip them.
+    target_pid = state["patient_id"]
+    filtered_chunks = []
+    for doc in state["retrieved_chunks"]:
+        chunk_pid = doc.metadata.get("patient_id", "")
+        # Allow patient_records that match, and GLOBAL reference docs
+        if chunk_pid == target_pid or chunk_pid == "GLOBAL":
+            filtered_chunks.append(doc)
+        else:
+            print(f"[Node 4 - Generate] ⚠️  Dropped cross-patient chunk "
+                  f"(wanted={target_pid}, got={chunk_pid})")
+
+    if not filtered_chunks:
+        no_data_msg = (
+            f"No medical records matched patient ID '{target_pid}' after filtering. "
+            f"Please verify the patient ID and try again."
+        )
+        print(f"[Node 4 - Generate] All chunks filtered out — no matching patient data")
+        return {**state, "answer": no_data_msg, "sources": []}
+
     context_blocks = []
     sources = []
 
-    for i, doc in enumerate(state["retrieved_chunks"]):
+    for i, doc in enumerate(filtered_chunks):
         meta = doc.metadata
         content_type = meta.get("content_type", "?")
 
@@ -127,20 +149,23 @@ def generate_node(state):
 
     # print full context this time — not truncated
     print("\n" + "="*60)
-    print("FULL CONTEXT SENT TO MODEL:")
+    print(f"FULL CONTEXT SENT TO MODEL (patient_id={target_pid}):")
     print(context)
     print("="*60 + "\n")
 
-    user_message = f"""Sources:
+    user_message = f"""You are answering about Patient (system ID: {target_pid}).
+
+Sources:
 {context}
 
 Question: {state["transcribed_query"]}
 
-Using ONLY the exact values from the sources above, answer the question.
-Copy numbers exactly as written. Do not add any values not in the sources.
+Using ONLY the exact values from the sources above, answer the question
+for Patient {target_pid}. Copy numbers exactly as written.
+Do not add any values not in the sources.
 Flag any CRITICAL values prominently."""
 
-    llm = ChatOllama(model="mistral:latest", temperature=0.0, num_ctx=4096)
+    llm = get_llm()
     response = llm.invoke([
         {"role": "system", "content": CLINICAL_SYSTEM_PROMPT},
         {"role": "user",   "content": user_message}

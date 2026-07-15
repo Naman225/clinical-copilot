@@ -8,18 +8,34 @@ ROUTE_EXAMPLES = {
         "what is the patient history",
         "show me the admission notes",
         "what were the lab results",
-        "describe the xray findings"
+        "describe the xray findings",
+        "give me a clinical summary of this patient",
+        "what is the diagnosis",
+        "what are the vital signs",
+        "patient medications and treatment plan",
+        "show the ECG findings",
+        "blood pressure and heart rate",
+        "what imaging was done",
+        "summarize this patient case",
+        "tell me about this patient",
+        "what is the patient presenting with",
+        "any abnormal lab values",
+        "chest x-ray report",
     ],
     "drug": [
         "what is the dosage of",
         "drug interaction between",
         "contraindications for",
-        "side effects of"
+        "side effects of",
+        "prescribing information for",
+        "what are the warnings for this medication",
     ],
     "trial": [
-        "what does the research show",
-        "clinical evidence for",
-        "trial results"
+        "what does the research study show",
+        "clinical trial evidence for treatment",
+        "trial results and outcomes",
+        "randomized controlled trial findings",
+        "research paper on treatment efficacy",
     ]
 }
 
