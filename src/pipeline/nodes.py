@@ -2,13 +2,16 @@ import re
 from src.pipeline.transcriber import MedicalTranscriber
 from src.retrieval.router import SemanticRouter
 from src.retrieval.hybrid_retriever import load_vector_stores, build_retriever
-from src.pipeline.prompts import CLINICAL_SYSTEM_PROMPT
+from src.pipeline.prompts import CLINICAL_SYSTEM_PROMPT, CLINICAL_USER_TEMPLATE
 from src.utils.config import get_llm
 
 IMAGE_CAPTION_MAX_CHARS = 500
 
 ## Node - 1 --
 def transcribe_node(state):
+    if state.get("transcribed_query", "").strip():
+        print(f"[Node 1 - Transcribe] Pre-filled: {state['transcribed_query']}")
+        return state
     transcriber = MedicalTranscriber(model_size= "base")
     result = transcriber.transcribe(state['audio_path'])
     print(f"[Node 1 - Transcribe] {result['text']}")
@@ -153,17 +156,10 @@ def generate_node(state):
     print(context)
     print("="*60 + "\n")
 
-    user_message = f"""You are answering about Patient (system ID: {target_pid}).
-
-Sources:
-{context}
-
-Question: {state["transcribed_query"]}
-
-Using ONLY the exact values from the sources above, answer the question
-for Patient {target_pid}. Copy numbers exactly as written.
-Do not add any values not in the sources.
-Flag any CRITICAL values prominently."""
+    user_message = CLINICAL_USER_TEMPLATE.format(
+        context=context,
+        query=state["transcribed_query"]
+    )
 
     llm = get_llm()
     response = llm.invoke([

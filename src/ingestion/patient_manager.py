@@ -52,7 +52,7 @@ def index_patient_pdf(
     )
 
     image_docs = caption_images(image_stubs)
-    all_docs = text_docs + image_docs
+    all_docs = filter_complex_metadata(text_docs + image_docs)
     patient_store.add_documents(all_docs)
 
     # update registry
