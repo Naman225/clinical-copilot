@@ -5,10 +5,9 @@ from langchain_core.documents import Document
 from src.ingestion.pdf_loader import ExtractedImage
 from src.utils.config import get_vision_llm
 
-# Rate-limit settings for free-tier cloud APIs
-API_CALL_DELAY = 4          # seconds between successive vision calls
-MAX_RETRIES = 5             # retry attempts on 429 / transient errors
-INITIAL_BACKOFF = 10        # first retry waits this many seconds
+API_CALL_DELAY = 4         
+MAX_RETRIES = 5             
+INITIAL_BACKOFF = 10        
 
 
 def _invoke_with_retry(llm, messages, retries=MAX_RETRIES):
@@ -24,9 +23,9 @@ def _invoke_with_retry(llm, messages, retries=MAX_RETRIES):
                 print(f"    ⏳ Rate-limited (attempt {attempt}/{retries}). "
                       f"Retrying in {backoff}s...")
                 time.sleep(backoff)
-                backoff = min(backoff * 2, 120)   # cap at 2 minutes
+                backoff = min(backoff * 2, 120)   
             else:
-                raise  # not a rate-limit error, or exhausted retries
+                raise  
 
 
 def caption_images(
@@ -50,7 +49,6 @@ def caption_images(
         Describe this medical image clinically. Include all visible findings,
         measurements, labels, and clinical significance."""
 
-        # Throttle: wait between calls to stay under free-tier rate limits
         if i > 0:
             print(f"    ⏳ Waiting {API_CALL_DELAY}s (rate-limit throttle)...")
             time.sleep(API_CALL_DELAY)

@@ -4,10 +4,13 @@ from langchain_classic.retrievers import EnsembleRetriever, ContextualCompressio
 from langchain_community.document_compressors.flashrank_rerank import FlashrankRerank
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
+import os
 
 RERANK_MODEL = "ms-marco-MiniLM-L-12-v2"
 
 def load_vector_stores(db_path: str, embedder: HuggingFaceEmbeddings) -> dict:
+    if not os.path.exists(db_path):
+        raise FileNotFoundError(f"ChromaDB path not found at: {db_path}")
     return{
         "patient_records": Chroma(
             collection_name="patient_records",

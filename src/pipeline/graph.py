@@ -1,5 +1,5 @@
 from typing import TypedDict, List, Dict, Any
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import StateGraph, END
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 from src.pipeline.nodes import (

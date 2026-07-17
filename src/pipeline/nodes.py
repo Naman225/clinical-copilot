@@ -102,9 +102,6 @@ def generate_node(state):
         print(f"[Node 4 - Generate] No data — returning safe message")
         return {**state, "answer": no_data_msg, "sources": []}
 
-    # ── Patient isolation guard ────────────────────────────────────
-    # The BM25 / ensemble retriever may return chunks from other
-    # patients (BM25 doesn't respect metadata filters).  Strip them.
     target_pid = state["patient_id"]
     filtered_chunks = []
     for doc in state["retrieved_chunks"]:

@@ -1,482 +1,695 @@
 import gradio as gr
 import pandas as pd
 import os
-import base64
+import html
 from pathlib import Path
 from src.pipeline.graph import run_pipeline, run_pipeline_text, get_pipeline
 from src.ingestion.patient_manager import (
-    index_patient_pdf, get_patient_list,
-    patient_exists, load_registry
+    index_patient_pdf, get_patient_list, load_registry
 )
+from src.ingestion.reference_loader import load_reference_path
+from langchain_community.vectorstores.utils import filter_complex_metadata
 
 # ── startup ──────────────────────────────────────────────────────────
 print("Initializing Clinical Co-Pilot...")
 pipeline, embedder, vector_stores = get_pipeline()
 patient_store = vector_stores["patient_records"]
+pharma_store  = vector_stores["pharma_guidelines"]
+trial_store   = vector_stores["clinical_trials"]
 print("Ready.")
 
-MODE = "Local" if os.getenv("USE_LOCAL_MODELS", "true").lower() == "true" else "Cloud (OpenRouter)"
+MODE = "Local (Ollama)" if os.getenv("USE_LOCAL_MODELS", "true").lower() == "true" else "Cloud (OpenRouter)"
 
-# ── helpers ───────────────────────────────────────────────────────────
+# ── display helpers ───────────────────────────────────────────────────
+INTENT_LABELS = {
+    "patient_history": "Patient records only",
+    "drug":            "Drug guidelines + patient records",
+    "trial":           "Clinical trials + patient records",
+    "general":         "All available sources",
+}
+
+TYPE_LABELS = {
+    "text":          "Clinical note",
+    "table":         "Lab / table",
+    "medical_image": "Imaging (X-ray, ECG, etc.)",
+}
+
+EXAMPLE_QUESTIONS = [
+    "What are this patient's most recent lab results?",
+    "Summarize the chest X-ray findings.",
+    "Are there any abnormal ECG findings?",
+    "What medications are mentioned in the record?",
+    "Is there evidence of infection in the imaging?",
+]
+
 def _choices():
     patients = get_patient_list()
-    if not patients:
-        return []
-    return [(p["label"], p["id"]) for p in patients]
+    return [(p["label"], p["id"]) for p in patients] if patients else []
 
-def _make_dropdown(label="Select Patient"):
-    choices = _choices()
-    return gr.update(choices=choices, value=choices[0][1] if choices else None, label=label)
+def _refresh_patient_dropdown():
+    ch = _choices()
+    val = ch[0][1] if ch else None
+    return gr.update(choices=ch, value=val)
 
-# ── handlers ──────────────────────────────────────────────────────────
+def _patient_roster_df():
+    registry = load_registry()
+    if not registry:
+        return pd.DataFrame(columns=["Patient ID", "File", "Sections indexed"])
+    rows = []
+    for pid, info in sorted(registry.items(), key=lambda x: int(x[0]) if x[0].isdigit() else 0):
+        rows.append({
+            "Patient ID": pid,
+            "File": info.get("file_name", "—"),
+            "Sections indexed": info.get("chunk_count", 0),
+        })
+    return pd.DataFrame(rows)
+
+def _stats_html():
+    registry = load_registry()
+    return f"""
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="num">👤 {len(registry)}</div>
+        <div class="lbl">Patients</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">💊 {pharma_store._collection.count()}</div>
+        <div class="lbl">Drug guidelines</div>
+      </div>
+      <div class="stat-card">
+        <div class="num">🔬 {trial_store._collection.count()}</div>
+        <div class="lbl">Trial documents</div>
+      </div>
+    </div>
+    """
+
+def _status_banner(kind: str, title: str, detail: str = "") -> str:
+    styles = {
+        "success": ("#064e3b", "#059669", "#ecfdf5", "#10b981", "✓"),
+        "warning": ("#78350f", "#d97706", "#fffbeb", "#f59e0b", "!"),
+        "error":   ("#7f1d1d", "#dc2626", "#fef2f2", "#ef4444", "✕"),
+        "info":    ("#1e293b", "#38bdf8", "#f8fafc", "#0284c7", "ℹ"),
+    }
+    bg, border, text, icon_bg, icon = styles.get(kind, styles["info"])
+    detail_html = (
+        f'<div style="font-size:0.86rem;color:#cbd5e1;margin-top:4px;line-height:1.5;">'
+        f'{html.escape(detail)}</div>'
+    ) if detail else ""
+    return f"""
+    <div style="display:flex;gap:14px;align-items:flex-start;
+                background:{bg};border:1px solid {border};border-radius:10px;
+                padding:16px 18px;margin-bottom:10px;color:{text};box-shadow:0 4px 6px -1px rgba(0,0,0,0.15);">
+      <span style="background:{icon_bg};color:white;width:26px;height:26px;
+                   border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+                   font-size:0.85rem;font-weight:700;flex-shrink:0;">{icon}</span>
+      <div>
+        <div style="font-weight:600;font-size:0.98rem;color:{text};">{html.escape(title)}</div>
+        {detail_html}
+      </div>
+    </div>
+    """
+
+def _upload_result_card(kind: str, title: str, subtitle: str = "") -> str:
+    styles = {
+        "success": ("#064e3b", "#34d399", "✓"),
+        "warning": ("#78350f", "#fbbf24", "!"),
+        "error":   ("#7f1d1d", "#f87171", "✕"),
+    }
+    bg, text, icon = styles.get(kind, styles["success"])
+    sub = (
+        f'<div style="font-size:0.83rem;color:#cbd5e1;margin-top:2px;">{html.escape(subtitle)}</div>'
+        if subtitle else ""
+    )
+    return f"""
+    <div style="display:flex;gap:12px;background:{bg};border:1px solid rgba(255,255,255,0.15);border-radius:8px;
+                padding:12px 16px;margin-bottom:8px;color:{text};">
+      <span style="font-weight:700;font-size:1.1rem;">{icon}</span>
+      <div>
+        <div style="font-weight:600;color:#f8fafc;">{html.escape(title)}</div>
+        {sub}
+      </div>
+    </div>
+    """
+
+def _build_upload_report(results: list[dict]) -> str:
+    if not results:
+        return _status_banner("info", "No files processed.")
+
+    ok   = sum(1 for r in results if r["kind"] == "success")
+    warn = sum(1 for r in results if r["kind"] == "warning")
+    fail = sum(1 for r in results if r["kind"] == "error")
+    total = len(results)
+
+    if fail == 0 and warn == 0:
+        summary_kind, summary_title = "success", f"All {total} file{'s' if total != 1 else ''} uploaded successfully"
+    elif ok == 0:
+        summary_kind, summary_title = "error", f"Upload failed for {fail + warn} of {total} file{'s' if total != 1 else ''}"
+    else:
+        summary_kind = "warning"
+        summary_title = f"{ok} succeeded, {fail + warn} need attention ({total} total)"
+
+    parts = [_status_banner(summary_kind, summary_title)]
+    parts.extend(_upload_result_card(r["kind"], r["title"], r.get("subtitle", "")) for r in results)
+    return "".join(parts)
+
+def _file_path(f) -> str:
+    return f.name if hasattr(f, "name") else str(f)
+
+def _patient_loading():
+    return """
+    <div style="display:flex;gap:16px;align-items:center;background:#1e293b;border:1px solid #38bdf8;border-radius:10px;padding:18px 20px;color:#f8fafc;box-shadow:0 4px 6px -1px rgba(0,0,0,0.2);">
+      <div style="width:28px;height:28px;border:3px solid rgba(56,189,248,0.2);border-top-color:#38bdf8;border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0;"></div>
+      <div>
+        <div style="font-weight:600;font-size:1rem;color:#38bdf8;">⏳ Processing & Indexing Patient Records...</div>
+        <div style="font-size:0.86rem;color:#cbd5e1;margin-top:4px;">Parsing notes, tables, and medical imaging. This may take a minute.</div>
+      </div>
+    </div>
+    """
+
+def _ref_loading():
+    return """
+    <div style="display:flex;gap:16px;align-items:center;background:#1e293b;border:1px solid #38bdf8;border-radius:10px;padding:18px 20px;color:#f8fafc;box-shadow:0 4px 6px -1px rgba(0,0,0,0.2);">
+      <div style="width:28px;height:28px;border:3px solid rgba(56,189,248,0.2);border-top-color:#38bdf8;border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0;"></div>
+      <div>
+        <div style="font-weight:600;font-size:1rem;color:#38bdf8;">⏳ Adding Documents to Knowledge Base...</div>
+        <div style="font-size:0.86rem;color:#cbd5e1;margin-top:4px;">Extracting content and updating vector search index. Please wait.</div>
+      </div>
+    </div>
+    """
+
+# ── patient upload ────────────────────────────────────────────────────
 def upload_patient(pdf_files):
-    """Upload one or more patient PDFs. IDs are auto-assigned."""
     if not pdf_files:
         return (
-            gr.update(value="⚠️ Please upload at least one PDF file."),
-            _make_dropdown(),
-            _make_dropdown()
+            _status_banner("warning", "No files selected", "Choose at least one patient PDF to upload."),
+            _patient_roster_df(),
+            _refresh_patient_dropdown(),
+            _stats_html(),
         )
 
-    lines = []
-    for pdf_file in pdf_files:
+    results = []
+    for f in pdf_files:
+        path_str = _file_path(f)
+        fname = Path(path_str).name
         try:
             pid, msg = index_patient_pdf(
-                pdf_path=pdf_file.name,
+                pdf_path=path_str,
                 patient_store=patient_store,
                 embedder=embedder,
                 patient_id=None,
-                replace=False
+                replace=False,
             )
-            lines.append(f"✅ Patient **{pid}** — {Path(pdf_file.name).name} indexed successfully ({msg.split(':')[-1].strip()})")
-        except Exception as e:
-            lines.append(f"❌ {Path(pdf_file.name).name} — failed: {e}")
+            registry = load_registry()
+            sections = registry.get(pid, {}).get("chunk_count", "?")
 
-    status = "\n\n".join(lines)
+            if "already exists" in msg.lower():
+                results.append({"kind": "warning", "title": fname, "subtitle": msg})
+            else:
+                results.append({
+                    "kind": "success",
+                    "title": f"Patient {pid} added",
+                    "subtitle": f"{fname} · {sections} sections indexed",
+                })
+        except Exception as e:
+            results.append({"kind": "error", "title": fname, "subtitle": str(e)})
+
     return (
-        gr.update(value=status),
-        _make_dropdown(),
-        _make_dropdown()
+        _build_upload_report(results),
+        _patient_roster_df(),
+        _refresh_patient_dropdown(),
+        _stats_html(),
     )
 
+# ── reference upload ──────────────────────────────────────────────────
+def upload_reference(pdf_files, ref_type):
+    stats = _stats_html()
+    if not pdf_files:
+        return _status_banner("warning", "No files selected", "Choose one or more PDF files."), stats
 
-def ask_audio(audio_path, patient_id):
-    """Handle voice query."""
-    if audio_path is None:
-        return (
-            "⚠️ Please record or upload an audio query.",
-            "", pd.DataFrame(), ""
+    domain = "pharma_guideline" if ref_type == "Drug Guidelines" else "clinical_trial"
+    store  = pharma_store if domain == "pharma_guideline" else trial_store
+    paths  = [Path(_file_path(f)) for f in pdf_files]
+    label  = "Drug guidelines" if domain == "pharma_guideline" else "Clinical trials"
+
+    results = []
+    try:
+        docs = load_reference_path(paths, domain)
+        docs = filter_complex_metadata(docs)
+        store.add_documents(docs)
+        for p in paths:
+            results.append({
+                "kind": "success",
+                "title": p.name,
+                "subtitle": f"Added to {label.lower()}",
+            })
+        report = _build_upload_report(results)
+        report += (
+            f'<div style="font-size:0.85rem;color:#94a3b8;margin-top:8px;padding-left:4px;">'
+            f'{len(docs)} searchable sections added in total.</div>'
         )
+        return report, _stats_html()
+    except Exception as e:
+        return _status_banner("error", f"Could not add {label.lower()}", str(e)), stats
+
+# ── query ─────────────────────────────────────────────────────────────
+def _format_sources(sources: list) -> pd.DataFrame:
+    if not sources:
+        return pd.DataFrame(columns=["#", "Type", "Document", "Page", "Excerpt"])
+    rows = []
+    for s in sources:
+        rows.append({
+            "#": s.get("index", ""),
+            "Type": TYPE_LABELS.get(s.get("type", ""), s.get("type", "—")),
+            "Document": s.get("file", "—"),
+            "Page": s.get("page", "—"),
+            "Excerpt": s.get("preview", ""),
+        })
+    return pd.DataFrame(rows)
+
+def _format_query_meta(result: dict) -> str:
+    intent = INTENT_LABELS.get(result["intent"], result["intent"])
+    if result["is_grounded"]:
+        badge_style = "background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;"
+        badge_text = "✓ Verified against source documents"
+    else:
+        badge_style = "background:#fffbeb;color:#d97706;border:1px solid #fde68a;"
+        badge_text = "⚠ Review recommended — not fully verified"
+
+    heard = html.escape(result.get("transcription") or "")
+    return f"""
+    <div style="margin-bottom:12px;">
+      <span style="display:inline-block;padding:6px 14px;border-radius:999px;
+                   font-size:0.8rem;font-weight:600;{badge_style}">{badge_text}</span>
+      <div style="margin-top:10px;font-size:0.88rem;color:#cbd5e1;">
+        <strong style="color:#94a3b8;">Question:</strong> {heard}
+      </div>
+      <div style="font-size:0.88rem;color:#cbd5e1;margin-top:4px;">
+        <strong style="color:#94a3b8;">Sources searched:</strong> {html.escape(intent)}
+      </div>
+    </div>
+    """
+
+def _run(audio_path, text, patient_id):
     if not patient_id:
         return (
-            "⚠️ Please select a patient first.",
-            "", pd.DataFrame(), ""
+            "Please select a patient from the dropdown above.",
+            _status_banner("warning", "No patient selected", "Upload a patient record first, then choose them here."),
+            pd.DataFrame(),
+            "",
         )
-    return _run_query(audio_path=audio_path, text=None, patient_id=patient_id)
-
-
-def ask_text(text, patient_id):
-    """Handle typed query."""
-    if not text or not text.strip():
-        return (
-            "⚠️ Please type a question.",
-            "", pd.DataFrame(), ""
-        )
-    if not patient_id:
-        return (
-            "⚠️ Please select a patient first.",
-            "", pd.DataFrame(), ""
-        )
-    return _run_query(audio_path=None, text=text.strip(), patient_id=patient_id)
-
-
-def _run_query(audio_path, text, patient_id):
-    """Shared logic for audio and text queries."""
     try:
         if audio_path:
             result = run_pipeline(audio_path=audio_path, patient_id=str(patient_id))
         else:
             result = run_pipeline_text(text_query=text, patient_id=str(patient_id))
 
-        answer  = result["answer"]
-        transcription = result["transcription"]
-        intent  = result["intent"]
-        sources = result["sources"]
-        grounded = result["is_grounded"]
-
-        intent_labels = {
-            "patient_history": "🩺 Patient Records",
-            "drug":            "💊 Drug Guidelines",
-            "trial":           "🔬 Clinical Trials",
-            "general":         "📚 All Sources"
-        }
-        intent_display = intent_labels.get(intent, intent)
-        grounded_display = "✅ Answer verified against sources" if grounded else "⚠️ Answer could not be fully verified"
-
-        info_md = (
-            f"**Query:** {transcription}  \n"
-            f"**Sources searched:** {intent_display}  \n"
-            f"**Verification:** {grounded_display}"
+        return (
+            result["answer"],
+            _format_query_meta(result),
+            _format_sources(result["sources"]),
+            result.get("transcription") or "",
         )
-
-        sources_df = pd.DataFrame(sources)[["index", "type", "file", "page", "preview"]] if sources else pd.DataFrame()
-
-        return answer, info_md, sources_df, transcription
-
     except Exception as e:
         return (
-            f"❌ An error occurred: {e}\n\nPlease check that a patient is selected and try again.",
-            "", pd.DataFrame(), ""
+            f"Something went wrong while processing your question.\n\n{e}",
+            _status_banner("error", "Query failed", str(e)),
+            pd.DataFrame(),
+            "",
         )
 
-
-def get_system_status():
+def system_status():
     registry = load_registry()
-    count = len(registry)
     lines = [
-        f"**Patients in system:** {count}",
-        f"**AI mode:** {MODE}",
-        f"**Embedding:** all-MiniLM-L6-v2",
-        f"**Reranker:** FlashRank ms-marco-MiniLM-L-12-v2",
+        "### System overview",
         "",
+        "| Metric | Value |",
+        "|---|---|",
+        f"| **Patients indexed** | {len(registry)} |",
+        f"| **AI mode** | {MODE} |",
+        f"| **Embedding model** | all-MiniLM-L6-v2 |",
+        f"| **Reranker** | ms-marco-MiniLM-L-12-v2 |",
+        f"| **Drug guideline sections** | {pharma_store._collection.count()} |",
+        f"| **Clinical trial sections** | {trial_store._collection.count()} |",
+        "",
+        "> Answers are generated from indexed documents only. Always use clinical judgment.",
     ]
     if registry:
-        lines.append("**Indexed patients:**")
+        lines += ["", "### Patient registry", ""]
         for pid, info in sorted(registry.items()):
-            lines.append(f"- Patient {pid} — {info['file_name']} ({info['chunk_count']} chunks)")
+            lines.append(f"- **Patient {pid}** — {info['file_name']} ({info['chunk_count']} sections)")
     else:
-        lines.append("*No patients indexed yet. Go to 'Add Patient' to upload records.*")
+        lines += ["", "*No patients uploaded yet. Go to the **Patients** tab to add records.*"]
     return "\n".join(lines)
 
-
 # ── CSS ───────────────────────────────────────────────────────────────
-CUSTOM_CSS = """
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+CSS = """
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* ── Global ── */
-body, .gradio-container { font-family: 'Inter', sans-serif !important; }
-.gradio-container { max-width: 1200px !important; margin: auto !important; }
+:root {
+    --blue-900: #0c4a6e;
+    --blue-700: #0369a1;
+    --radius: 12px;
+}
 
-/* ── Hero ── */
-.hero-wrap {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-    border-radius: 20px;
-    padding: 0;
+.gradio-container {
+    font-family: 'Inter', system-ui, sans-serif !important;
+    max-width: 1180px !important;
+    margin: 0 auto !important;
+}
+
+/* header */
+.app-header {
+    background: linear-gradient(135deg, #0c4a6e 0%, #075985 50%, #164e63 100%);
+    border-radius: 16px;
+    padding: 24px 28px;
+    color: white;
     margin-bottom: 16px;
-    overflow: hidden;
-    border: 1px solid rgba(56,189,248,0.15);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    display: flex;
+    gap: 20px;
+    align-items: center;
 }
-.hero-wrap img {
-    width: 100%;
-    height: 180px;
-    object-fit: cover;
-    display: block;
-    opacity: 0.6;
+.app-header h1 { font-size: 1.65rem; font-weight: 700; margin: 0 0 6px; }
+.app-header p  { margin: 0; opacity: 0.9; line-height: 1.55; font-size: 0.95rem; }
+.header-icon { font-size: 2.8rem; line-height: 1; flex-shrink: 0; }
+.trust-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.trust-badge {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
 }
-.hero-text {
-    padding: 24px 32px 20px;
+
+/* stats */
+.stats-row { display: flex; gap: 14px; margin: 0 0 18px; flex-wrap: wrap; }
+.stat-card {
+    flex: 1; min-width: 140px;
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    border-radius: var(--radius);
+    padding: 18px 20px;
     text-align: center;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.25);
 }
-.hero-text h1 {
-    font-size: 28px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin: 0 0 8px;
+.stat-card .num { font-size: 1.8rem; font-weight: 700; color: #38bdf8 !important; line-height: 1; }
+.stat-card .lbl {
+    font-size: 0.74rem; color: #cbd5e1 !important; text-transform: uppercase;
+    letter-spacing: 0.08em; margin-top: 6px; font-weight: 600;
 }
-.hero-text p {
-    color: #94a3b8;
-    font-size: 14px;
-    margin: 0;
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* workflow hint */
+.workflow-hint {
+    background: #1e3a5f;
+    border-left: 4px solid #38bdf8;
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    color: #e2e8f0;
+    margin-bottom: 12px;
     line-height: 1.5;
 }
 
-/* ── Feature cards ── */
-.features-row {
-    display: flex;
-    gap: 12px;
-    padding: 0 32px 24px;
-    justify-content: center;
-}
-.feat-card {
-    flex: 1;
-    background: rgba(30,41,59,0.6);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(56,189,248,0.12);
-    border-radius: 14px;
-    padding: 16px;
-    text-align: center;
-    transition: transform 0.2s, border-color 0.2s;
-}
-.feat-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(56,189,248,0.35);
-}
-.feat-icon { font-size: 28px; margin-bottom: 6px; }
-.feat-title { color: #e2e8f0; font-weight: 600; font-size: 13px; margin: 4px 0 2px; }
-.feat-desc  { color: #64748b; font-size: 11px; line-height: 1.4; }
-
-/* ── Pipeline viz ── */
-.pipeline-strip {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-    padding: 12px 20px;
-    background: rgba(15,23,42,0.5);
-    border-radius: 12px;
-    border: 1px solid rgba(56,189,248,0.08);
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-}
-.pip-step {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 500;
-    color: #94a3b8;
-    background: rgba(30,41,59,0.5);
-    border: 1px solid rgba(100,116,139,0.15);
-    white-space: nowrap;
-}
-.pip-arrow { color: #475569; font-size: 16px; margin: 0 2px; }
-
-/* ── Status badges ── */
-@keyframes shimmer {
-    0%   { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-}
-.loading-bar {
-    background: linear-gradient(90deg, transparent, rgba(56,189,248,0.5), transparent);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s ease-in-out infinite;
-    height: 3px;
-    border-radius: 4px;
-    margin-top: 6px;
-}
-.status-box {
-    padding: 14px 18px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-.status-idle    { background: rgba(100,116,139,0.06); border: 1px solid rgba(100,116,139,0.12); color: #94a3b8; }
-.status-loading { background: rgba(56,189,248,0.06); border: 1px solid rgba(56,189,248,0.2); color: #38bdf8; }
-.status-done    { background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.2); color: #34d399; }
-.status-error   { background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.2); color: #f87171; }
-
-/* ── Section labels ── */
-.section-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: #38bdf8;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin: 8px 0 4px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.section-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, rgba(56,189,248,0.3), transparent);
+/* upload hints — dark-theme friendly */
+.upload-hint-dark {
+    background: #1e293b;
+    border: 1px dashed #475569;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    line-height: 1.55;
+    margin-bottom: 8px;
 }
 
-/* ── Misc polish ── */
-.gr-button-primary {
-    background: linear-gradient(135deg, #2563eb, #7c3aed) !important;
+/* tighten upload column spacing */
+.upload-col .block { padding: 4px 8px !important; gap: 4px !important; }
+.upload-col .wrap { gap: 6px !important; }
+.upload-col [data-testid="file-upload"] { min-height: unset !important; }
+.upload-col .primary-btn { margin-top: 2px !important; }
+
+/* status boxes — prevent collapse */
+#patient-status-box, #ref-status-box { min-height: 56px; }
+
+/* answer panel */
+#answer-box textarea {
+    font-size: 0.95rem !important;
+    line-height: 1.75 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    padding: 14px !important;
+}
+
+/* primary buttons */
+.primary-btn button {
+    background: var(--blue-900) !important;
     border: none !important;
     font-weight: 600 !important;
-    letter-spacing: 0.3px !important;
-    transition: transform 0.15s, box-shadow 0.15s !important;
+    padding: 10px 18px !important;
 }
-.gr-button-primary:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 6px 20px rgba(37,99,235,0.35) !important;
+
+.tab-nav button.selected {
+    font-weight: 700 !important;
+    color: var(--blue-700) !important;
 }
 """
-
-# ── HTML builders ─────────────────────────────────────────────────────
-init_choices = _choices()
-
-# Load hero banner as base64 for inline embedding
-_hero_b64 = ""
-try:
-    with open("static/hero_banner.png", "rb") as _f:
-        _hero_b64 = base64.b64encode(_f.read()).decode()
-except FileNotFoundError:
-    pass
-
-HERO_HTML = f"""
-<div class="hero-wrap">
-    <img src="data:image/png;base64,{_hero_b64}" alt="Clinical AI" />
-    <div class="hero-text">
-        <h1>🏥 Clinical Intelligence & Diagnostics Co-Pilot</h1>
-        <p>AI-powered multimodal medical assistant — reads patient PDFs (labs, X-rays, ECGs),<br>
-        answers clinical questions via voice or text, with source-grounded verification.</p>
-    </div>
-    <div class="features-row">
-        <div class="feat-card">
-            <div class="feat-icon">📄</div>
-            <div class="feat-title">Smart PDF Parsing</div>
-            <div class="feat-desc">Docling-powered layout extraction of text, tables & medical images</div>
-        </div>
-        <div class="feat-card">
-            <div class="feat-icon">🧠</div>
-            <div class="feat-title">Multimodal RAG</div>
-            <div class="feat-desc">Hybrid retrieval with BM25 + vector search, FlashRank reranking</div>
-        </div>
-        <div class="feat-card">
-            <div class="feat-icon">🎙️</div>
-            <div class="feat-title">Voice & Text</div>
-            <div class="feat-desc">Whisper transcription with semantic intent routing</div>
-        </div>
-        <div class="feat-card">
-            <div class="feat-icon">✅</div>
-            <div class="feat-title">Verified Answers</div>
-            <div class="feat-desc">Hallucination guard with numeric grounding checks</div>
-        </div>
-    </div>
-</div>
-"""
-
-PIPELINE_HTML = """
-<div class="pipeline-strip">
-    <div class="pip-step">🎙️ Transcribe</div><span class="pip-arrow">→</span>
-    <div class="pip-step">🧭 Classify Intent</div><span class="pip-arrow">→</span>
-    <div class="pip-step">🔍 Retrieve</div><span class="pip-arrow">→</span>
-    <div class="pip-step">🧠 Generate</div><span class="pip-arrow">→</span>
-    <div class="pip-step">✅ Verify</div>
-</div>
-"""
-
-def _status_html(msg, status="idle"):
-    icons = {"idle": "💤", "loading": "⏳", "done": "✅", "error": "❌"}
-    icon = icons.get(status, "")
-    bar = '<div class="loading-bar"></div>' if status == "loading" else ""
-    return f'<div class="status-box status-{status}">{icon} {msg}{bar}</div>'
-
 
 # ── BUILD UI ──────────────────────────────────────────────────────────
+init_choices = _choices()
+init_val     = init_choices[0][1] if init_choices else None
+has_patients = bool(init_choices)
+
+READY_STATUS = _status_banner("info", "Ready to upload", "Select PDF files, then click the upload button.")
+
 with gr.Blocks(title="Clinical Co-Pilot") as demo:
 
-    gr.HTML(HERO_HTML)
+    gr.HTML("""
+    <div class="app-header">
+      <div class="header-icon">🏥</div>
+      <div style="flex:1;">
+        <h1>Clinical Co-Pilot</h1>
+        <p>Ask questions about your patients by voice or text.
+           Answers are drawn from uploaded records, drug guidelines, and trial data — with source citations.</p>
+        <div class="trust-badges">
+          <span class="trust-badge">🔒 Patient-isolated</span>
+          <span class="trust-badge">📎 Source-cited</span>
+          <span class="trust-badge">✅ Verification check</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.22);padding:12px 18px;border-radius:14px;flex-shrink:0;">
+        <span style="font-size:2.2rem;">⚡🩺</span>
+        <div>
+          <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;color:#7dd3fc;font-weight:700;">AI Engine</div>
+          <div style="font-size:0.95rem;font-weight:600;color:white;">Active & Grounded</div>
+        </div>
+      </div>
+    </div>
+    """)
 
-    with gr.Tab("➕ Add Patient"):
-        gr.HTML('<div class="section-label">Upload Patient Records</div>')
-        gr.Markdown("Upload a patient PDF containing clinical notes, lab results, and imaging reports. A unique patient ID is assigned automatically.")
+    stats_box = gr.HTML(value=_stats_html())
 
-        pdf_upload = gr.File(
-            label="Patient PDF files",
-            file_types=[".pdf"],
-            file_count="multiple"
-        )
-        upload_btn = gr.Button("📥  Add Patient(s) to System", variant="primary", size="lg")
+    if not has_patients:
+        gr.HTML("""
+        <div class="workflow-hint">
+          <strong>Getting started:</strong>
+          1) Go to <b>Patients</b> and upload a clinical PDF →
+          2) Return here and select the patient →
+          3) Ask your question by voice or text.
+        </div>
+        """)
 
-        upload_loading = gr.HTML(value=_status_html("Upload a PDF to begin.", "idle"))
-        upload_status = gr.Markdown(value="")
-
-        gr.HTML('<div class="section-label">Patients in System</div>')
-        mgmt_dropdown = gr.Dropdown(
-            choices=init_choices,
-            value=init_choices[0][1] if init_choices else None,
-            label="Indexed patients",
-            interactive=False
-        )
-
-    with gr.Tab("🔬 Clinical Query"):
-        gr.HTML(PIPELINE_HTML)
-
+    with gr.Tab("Consult"):
         with gr.Row():
-            with gr.Column(scale=1):
-                gr.HTML('<div class="section-label">Patient & Input</div>')
-                query_patient = gr.Dropdown(
+            with gr.Column(scale=5):
+                patient_dd = gr.Dropdown(
                     choices=init_choices,
-                    value=init_choices[0][1] if init_choices else None,
-                    label="👤 Select Patient",
-                    interactive=True
+                    value=init_val,
+                    label="Select patient",
+                    info="Each patient's data is kept separate",
                 )
 
-                audio_input = gr.Audio(type="filepath", label="🎙️ Voice Query")
-                audio_btn = gr.Button("🔍 Analyse Voice Query", variant="primary")
-
-                text_input = gr.Textbox(
-                    placeholder="e.g. What are the lab results? Is there anything concerning in the chest X-ray?",
-                    label="⌨️ Text Query",
-                    lines=2
+                gr.Markdown("#### Ask your question")
+                text_in = gr.Textbox(
+                    placeholder="e.g. What do the lab results show? Is the chest X-ray concerning?",
+                    label="Type a question",
+                    lines=3,
                 )
-                text_btn = gr.Button("🔍 Analyse Text Query", variant="primary")
+                with gr.Row():
+                    text_btn  = gr.Button("Get answer", variant="primary", elem_classes=["primary-btn"], scale=2)
+                    voice_btn = gr.Button("Use voice instead", scale=1)
 
-            with gr.Column(scale=2):
-                query_loading = gr.HTML(value=_status_html("Submit a query to get started.", "idle"))
+                with gr.Accordion("🎙️ Voice query", open=False, elem_id="voice-accordion") as voice_accordion:
+                    audio_in = gr.Audio(type="filepath", label="Record or upload audio")
+                    voice_submit = gr.Button("Analyse voice", variant="primary", elem_classes=["primary-btn"])
 
-                gr.HTML('<div class="section-label">Clinical Response</div>')
-                answer_box = gr.Textbox(
-                    label="",
-                    lines=12,
+                gr.Examples(
+                    examples=EXAMPLE_QUESTIONS,
+                    inputs=text_in,
+                    label="Example questions (click to fill)",
+                )
+
+            with gr.Column(scale=7):
+                query_meta = gr.HTML("")
+                answer_out = gr.Textbox(
+                    label="Clinical answer",
+                    lines=14,
                     interactive=False,
-                    placeholder="The AI response will appear here..."
+                    placeholder="Your answer will appear here with citations…",
+                    elem_id="answer-box",
                 )
-                query_info = gr.Markdown("")
 
-                gr.HTML('<div class="section-label">Sources Referenced</div>')
-                sources_table = gr.DataFrame(label="", wrap=True)
-                transcription_box = gr.Textbox(label="📝 Transcribed query", interactive=False)
+                with gr.Group(visible=False) as sources_section:
+                    gr.HTML('<div style="text-align: center; font-size: 1.15rem; font-weight: 700; margin: 18px 0 10px; color: #f8fafc;">📎 Sources referenced</div>')
+                    sources_tbl = gr.DataFrame(
+                        wrap=True,
+                        column_widths=["6%", "16%", "24%", "8%", "46%"],
+                    )
 
-    with gr.Tab("⚙️ System Status"):
-        gr.HTML('<div class="section-label">System Overview</div>')
-        status_display = gr.Markdown(value=get_system_status())
-        refresh_status_btn = gr.Button("🔄 Refresh Status")
-        refresh_status_btn.click(fn=get_system_status, outputs=status_display)
+                transcript_box = gr.Textbox(
+                    label="Transcribed question (voice only)",
+                    interactive=False,
+                    lines=1,
+                    visible=False,
+                )
 
-    # ── events ──────────────────────────────────────────────────────
-    upload_btn.click(
-        fn=lambda: _status_html("Processing PDF — extracting text, tables & images…", "loading"),
-        inputs=None, outputs=upload_loading
-    ).then(
-        fn=upload_patient,
-        inputs=[pdf_upload],
-        outputs=[upload_status, mgmt_dropdown, query_patient]
-    ).then(
-        fn=lambda: _status_html("Upload complete!", "done"),
-        inputs=None, outputs=upload_loading
-    )
+    with gr.Tab("Patients"):
+        with gr.Row():
+            with gr.Column(elem_classes=["upload-col"]):
+                gr.Markdown("### Upload patient records")
+                gr.HTML("""
+                <div class="upload-hint-dark">
+                  📄 <strong>Patient PDF</strong> — notes, labs, X-ray &amp; ECG in one file<br>
+                  🆔 A unique Patient ID is assigned automatically<br>
+                  📁 Upload several patients at once
+                </div>
+                """)
+                patient_pdf = gr.File(
+                    label="Patient PDF files",
+                    file_types=[".pdf"],
+                    file_count="multiple",
+                )
+                patient_upload_btn = gr.Button(
+                    "📥 Upload patient record(s)",
+                    variant="primary",
+                    elem_classes=["primary-btn"],
+                )
 
-    audio_btn.click(
-        fn=lambda: (_status_html("Analysing… Transcribing → Classifying → Retrieving → Generating…", "loading"), "", "", pd.DataFrame(), ""),
-        inputs=None, outputs=[query_loading, answer_box, query_info, sources_table, transcription_box]
-    ).then(
-        fn=ask_audio,
-        inputs=[audio_input, query_patient],
-        outputs=[answer_box, query_info, sources_table, transcription_box]
-    ).then(
-        fn=lambda: _status_html("Analysis complete.", "done"),
-        inputs=None, outputs=query_loading
-    )
+            with gr.Column():
+                gr.Markdown("### Upload result")
+                patient_status = gr.HTML(value=READY_STATUS, elem_id="patient-status-box")
+                gr.Markdown("### Current patients")
+                patient_roster = gr.DataFrame(
+                    value=_patient_roster_df(),
+                    interactive=False,
+                    wrap=True,
+                )
+
+    with gr.Tab("Guidelines & Trials"):
+        gr.Markdown(
+            "Add drug prescribing information or clinical trial PDFs. "
+            "These are searched automatically when you ask medication or evidence-based questions."
+        )
+        with gr.Row():
+            with gr.Column(elem_classes=["upload-col"]):
+                ref_type = gr.Radio(
+                    choices=["Drug Guidelines", "Clinical Trials"],
+                    value="Drug Guidelines",
+                    label="Document type",
+                )
+                gr.HTML("""
+                <div class="upload-hint-dark">
+                  💊 <strong>Drug Guidelines</strong> — labels, dosing sheets, prescribing info<br>
+                  🔬 <strong>Clinical Trials</strong> — research papers, outcomes, evidence summaries
+                </div>
+                """)
+                ref_pdf = gr.File(
+                    label="PDF files",
+                    file_types=[".pdf"],
+                    file_count="multiple",
+                )
+                ref_upload_btn = gr.Button(
+                    "📥 Add to knowledge base",
+                    variant="primary",
+                    elem_classes=["primary-btn"],
+                )
+
+            with gr.Column():
+                gr.Markdown("### Upload result")
+                ref_status = gr.HTML(value=READY_STATUS, elem_id="ref-status-box")
+
+    with gr.Tab("About"):
+        status_md = gr.Markdown(value=system_status())
+        gr.Button("🔄 Refresh").click(fn=system_status, outputs=status_md)
+
+    # ── events ────────────────────────────────────────────────────────
+    QUERY_OUTPUTS = [answer_out, query_meta, sources_tbl, transcript_box, transcript_box, sources_section]
+
+    def _ask_and_show_transcript(audio, text, patient_id):
+        ans, meta, src, trans = _run(audio, text, patient_id)
+        has_sources = isinstance(src, pd.DataFrame) and len(src) > 0
+        return (
+            ans,
+            meta,
+            src,
+            trans,
+            gr.update(value=trans, visible=bool(trans)),
+            gr.update(visible=has_sources),
+        )
 
     text_btn.click(
-        fn=lambda: (_status_html("Analysing… Classifying → Retrieving → Generating…", "loading"), "", "", pd.DataFrame(), ""),
-        inputs=None, outputs=[query_loading, answer_box, query_info, sources_table, transcription_box]
+        fn=lambda t, p: _ask_and_show_transcript(None, t, p),
+        inputs=[text_in, patient_dd],
+        outputs=QUERY_OUTPUTS,
+        show_progress="minimal",
+    )
+    text_in.submit(
+        fn=lambda t, p: _ask_and_show_transcript(None, t, p),
+        inputs=[text_in, patient_dd],
+        outputs=QUERY_OUTPUTS,
+        show_progress="minimal",
+    )
+    voice_submit.click(
+        fn=lambda a, p: _ask_and_show_transcript(a, None, p),
+        inputs=[audio_in, patient_dd],
+        outputs=QUERY_OUTPUTS,
+        show_progress="minimal",
+    )
+    voice_btn.click(
+        fn=lambda: gr.Accordion(open=True),
+        inputs=None,
+        outputs=[voice_accordion],
+        js="() => { const acc = document.querySelector('#voice-accordion'); if (acc) { acc.open = true; const summary = acc.querySelector('summary'); if (summary && !acc.hasAttribute('open')) summary.click(); } }",
+    )
+
+    patient_upload_btn.click(
+        fn=_patient_loading,
+        inputs=None,
+        outputs=patient_status,
+        show_progress="hidden",
     ).then(
-        fn=ask_text,
-        inputs=[text_input, query_patient],
-        outputs=[answer_box, query_info, sources_table, transcription_box]
+        fn=upload_patient,
+        inputs=[patient_pdf],
+        outputs=[patient_status, patient_roster, patient_dd, stats_box],
+        show_progress="minimal",
+    )
+
+    ref_upload_btn.click(
+        fn=_ref_loading,
+        inputs=None,
+        outputs=ref_status,
+        show_progress="hidden",
     ).then(
-        fn=lambda: _status_html("Analysis complete.", "done"),
-        inputs=None, outputs=query_loading
+        fn=upload_reference,
+        inputs=[ref_pdf, ref_type],
+        outputs=[ref_status, stats_box],
+        show_progress="minimal",
     )
 
 if __name__ == "__main__":
-    demo.launch(
-        share=False,
-        theme=gr.themes.Soft(primary_hue="blue", neutral_hue="slate"),
-        css=CUSTOM_CSS
-    )
+    demo.launch(share=False, css=CSS, theme=gr.themes.Soft(primary_hue="sky"))
