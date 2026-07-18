@@ -7,6 +7,21 @@ from src.utils.config import get_llm
 
 IMAGE_CAPTION_MAX_CHARS = 500
 
+_LEAK_PATTERNS = [
+    r"^\s*\d+\.\s*[A-Z][A-Za-z /&\-]{2,60}:?\s*$",
+    r"^\s*Answer format:\s*$",
+    r"^\s*CRITICAL INSTRUCTIONS:\s*$",
+    r"^\s*Correct answer:\s*$",
+    r"^\s*---\s*(EXAMPLE|END EXAMPLE)\s*---\s*$",
+]
+_LEAK_RE = re.compile("|".join(_LEAK_PATTERNS), re.MULTILINE)
+
+
+def strip_leaked_instructions(text: str) -> str:
+    cleaned = _LEAK_RE.sub("", text)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
 ## Node - 1 --
 def transcribe_node(state):
     if state.get("transcribed_query", "").strip():
@@ -164,8 +179,9 @@ def generate_node(state):
         {"role": "user",   "content": user_message}
     ])
 
-    print(f"[Node 4 - Generate] {len(response.content)} chars")
-    return {**state, "answer": response.content, "sources": sources}
+    answer = strip_leaked_instructions(response.content)
+    print(f"[Node 4 - Generate] {len(answer)} chars")
+    return {**state, "answer": answer, "sources": sources}
 
 
 def _extract_numbers(text: str) -> set[str]:

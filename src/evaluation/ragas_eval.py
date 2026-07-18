@@ -60,9 +60,6 @@ def run_pipeline_with_context(question : str, patient_id : str) -> dict :
     }
     
 def _cache_key(question: str, patient_id: str) -> str:
-    # question text + patient_id, since the same question can be asked for
-    # different patients (patient_id="GLOBAL" gets resolved to a real id
-    # before this is called)
     return f"{patient_id}::{question}"
 
 
@@ -78,12 +75,32 @@ def _load_pipeline_cache(cache_path: str) -> dict:
 
 
 def _save_pipeline_cache(cache_path: str, cache: dict) -> None:
-    # write to a temp file then replace, so a crash mid-write can't corrupt
-    # the cache you already have
     tmp_path = cache_path + ".tmp"
     with open(tmp_path, "w") as f:
         json.dump(cache, f, indent=2)
     os.replace(tmp_path, cache_path)
+
+
+def stratified_sample(qa_pairs: list, max_questions: int) -> list:
+    if not max_questions or max_questions >= len(qa_pairs):
+        return qa_pairs
+
+    groups = {}
+    for qa in qa_pairs:
+        groups.setdefault(qa.get("patient_id", "GLOBAL"), []).append(qa)
+
+    keys = list(groups.keys())
+    result = []
+    idx = 0
+    while len(result) < max_questions:
+        key = keys[idx % len(keys)]
+        bucket = groups[key]
+        if bucket:
+            result.append(bucket.pop(0))
+        idx += 1
+        if all(not v for v in groups.values()):
+            break
+    return result[:max_questions]
 
 
 def build_ragas_dataset(
@@ -99,7 +116,7 @@ def build_ragas_dataset(
     if patient_filter:
         qa_pairs = [q for q in qa_pairs if q.get("patient_id") == patient_filter]
     if max_questions:
-        qa_pairs = qa_pairs[:max_questions]
+        qa_pairs = stratified_sample(qa_pairs, max_questions)
     
     print(f"Running {len(qa_pairs)} questions through pipeline...")
 
@@ -166,7 +183,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 def run_ragas_evaluation(
     eval_json_path: str = "evaluation_dataset.json",
     output_path: str = "ragas_results.json",
-    max_questions: int = 20,
+    max_questions: int = 40,
     pipeline_cache_path: str = "pipeline_cache.json",
     raw_results_path: str = "ragas_raw_results.csv",
     use_cache: bool = True,
@@ -254,7 +271,7 @@ def run_ragas_evaluation(
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run RAGAS Evaluation Pipeline")
-    parser.add_argument("--max-questions", "-m", type=int, default=20, help="Number of questions to evaluate")
+    parser.add_argument("--max-questions", "-m", type=int, default=40, help="Number of questions to evaluate")
     parser.add_argument("--cloud", action="store_true", help="Use cloud API models (OpenRouter) with parallel evaluation for 10x faster execution")
     parser.add_argument("--quick", action="store_true", help="Quick test run evaluating only 3 questions")
     parser.add_argument("--no-cache", action="store_true", help="Ignore pipeline_cache.json and re-run every pipeline call from scratch")
