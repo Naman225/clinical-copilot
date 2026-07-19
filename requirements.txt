@@ -19,3 +19,4 @@ pandas
 scikit-learn
 pydantic
 openai-whisper
+sentence-transformers
