@@ -10,6 +10,29 @@ from src.ingestion.patient_manager import (
 from src.ingestion.reference_loader import load_reference_path
 from langchain_community.vectorstores.utils import filter_complex_metadata
 
+# Patch gradio_client boolean schema bug in get_api_info
+try:
+    import gradio_client.utils as client_utils
+    _orig_json_schema = client_utils._json_schema_to_python_type
+    def _patched_json_schema_to_python_type(schema, defs):
+        if isinstance(schema, bool):
+            return "Any" if schema else "None"
+        return _orig_json_schema(schema, defs)
+    client_utils._json_schema_to_python_type = _patched_json_schema_to_python_type
+except Exception:
+    pass
+
+try:
+    import spaces
+except ImportError:
+    class _SpacesMock:
+        def GPU(self, *args, **kwargs):
+            if len(args) == 1 and callable(args[0]):
+                return args[0]
+            return lambda func: func
+    spaces = _SpacesMock()
+
+
 # ── startup ──────────────────────────────────────────────────────────
 print("Initializing Clinical Co-Pilot...")
 pipeline, embedder, vector_stores = get_pipeline()
@@ -178,6 +201,7 @@ def _ref_loading():
     """
 
 # ── patient upload ────────────────────────────────────────────────────
+@spaces.GPU(duration=25)
 def upload_patient(pdf_files):
     if not pdf_files:
         return (
@@ -221,6 +245,7 @@ def upload_patient(pdf_files):
     )
 
 # ── reference upload ──────────────────────────────────────────────────
+@spaces.GPU(duration=25)
 def upload_reference(pdf_files, ref_type):
     stats = _stats_html()
     if not pdf_files:
@@ -289,6 +314,10 @@ def _format_query_meta(result: dict) -> str:
     </div>
     """
 
+@spaces.GPU(duration=25)
+def _run_voice_pipeline(audio_path, patient_id):
+    return run_pipeline(audio_path=audio_path, patient_id=str(patient_id))
+
 def _run(audio_path, text, patient_id):
     if not patient_id:
         return (
@@ -299,7 +328,7 @@ def _run(audio_path, text, patient_id):
         )
     try:
         if audio_path:
-            result = run_pipeline(audio_path=audio_path, patient_id=str(patient_id))
+            result = _run_voice_pipeline(audio_path=audio_path, patient_id=patient_id)
         else:
             result = run_pipeline_text(text_query=text, patient_id=str(patient_id))
 
@@ -467,7 +496,7 @@ has_patients = bool(init_choices)
 
 READY_STATUS = _status_banner("info", "Ready to upload", "Select PDF files, then click the upload button.")
 
-with gr.Blocks(title="Clinical Co-Pilot") as demo:
+with gr.Blocks(title="Clinical Co-Pilot", css=CSS, theme=gr.themes.Soft(primary_hue="sky")) as demo:
 
     gr.HTML("""
     <div class="app-header">
@@ -647,24 +676,28 @@ with gr.Blocks(title="Clinical Co-Pilot") as demo:
         inputs=[text_in, patient_dd],
         outputs=QUERY_OUTPUTS,
         show_progress="minimal",
+        api_name=False,
     )
     text_in.submit(
         fn=lambda t, p: _ask_and_show_transcript(None, t, p),
         inputs=[text_in, patient_dd],
         outputs=QUERY_OUTPUTS,
         show_progress="minimal",
+        api_name=False,
     )
     voice_submit.click(
         fn=lambda a, p: _ask_and_show_transcript(a, None, p),
         inputs=[audio_in, patient_dd],
         outputs=QUERY_OUTPUTS,
         show_progress="minimal",
+        api_name=False,
     )
     voice_btn.click(
         fn=lambda: gr.Accordion(open=True),
         inputs=None,
         outputs=[voice_accordion],
         js="() => { const acc = document.querySelector('#voice-accordion'); if (acc) { acc.open = true; const summary = acc.querySelector('summary'); if (summary && !acc.hasAttribute('open')) summary.click(); } }",
+        api_name=False,
     )
 
     patient_upload_btn.click(
@@ -672,11 +705,13 @@ with gr.Blocks(title="Clinical Co-Pilot") as demo:
         inputs=None,
         outputs=patient_status,
         show_progress="hidden",
+        api_name=False,
     ).then(
         fn=upload_patient,
         inputs=[patient_pdf],
         outputs=[patient_status, patient_roster, patient_dd, stats_box],
         show_progress="minimal",
+        api_name=False,
     )
 
     ref_upload_btn.click(
@@ -684,12 +719,14 @@ with gr.Blocks(title="Clinical Co-Pilot") as demo:
         inputs=None,
         outputs=ref_status,
         show_progress="hidden",
+        api_name=False,
     ).then(
         fn=upload_reference,
         inputs=[ref_pdf, ref_type],
         outputs=[ref_status, stats_box],
         show_progress="minimal",
+        api_name=False,
     )
 
 if __name__ == "__main__":
-    demo.launch(share=False, css=CSS, theme=gr.themes.Soft(primary_hue="sky"))
+    demo.launch(share=False)

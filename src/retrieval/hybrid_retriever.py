@@ -9,8 +9,7 @@ import os
 RERANK_MODEL = "ms-marco-MiniLM-L-12-v2"
 
 def load_vector_stores(db_path: str, embedder: HuggingFaceEmbeddings) -> dict:
-    if not os.path.exists(db_path):
-        raise FileNotFoundError(f"ChromaDB path not found at: {db_path}")
+    os.makedirs(db_path, exist_ok=True)
     return{
         "patient_records": Chroma(
             collection_name="patient_records",
