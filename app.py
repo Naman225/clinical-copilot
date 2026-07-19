@@ -4,6 +4,7 @@ import os
 import html
 from pathlib import Path
 from src.pipeline.graph import run_pipeline, run_pipeline_text, get_pipeline
+from src.utils.config import get_store_count
 from src.ingestion.patient_manager import (
     index_patient_pdf, get_patient_list, load_registry
 )
@@ -96,11 +97,11 @@ def _stats_html():
         <div class="lbl">Patients</div>
       </div>
       <div class="stat-card">
-        <div class="num">💊 {pharma_store._collection.count()}</div>
+        <div class="num">💊 {get_store_count(pharma_store)}</div>
         <div class="lbl">Drug guidelines</div>
       </div>
       <div class="stat-card">
-        <div class="num">🔬 {trial_store._collection.count()}</div>
+        <div class="num">🔬 {get_store_count(trial_store)}</div>
         <div class="lbl">Trial documents</div>
       </div>
     </div>
@@ -355,10 +356,10 @@ def system_status():
         "|---|---|",
         f"| **Patients indexed** | {len(registry)} |",
         f"| **AI mode** | {MODE} |",
-        f"| **Embedding model** | all-MiniLM-L6-v2 |",
-        f"| **Reranker** | ms-marco-MiniLM-L-12-v2 |",
-        f"| **Drug guideline sections** | {pharma_store._collection.count()} |",
-        f"| **Clinical trial sections** | {trial_store._collection.count()} |",
+        f"| **Embedding model** | {'embed-v4.0' if 'Cloud' in MODE else 'all-MiniLM-L6-v2'} |",
+        f"| **Reranker** | {'rerank-v3.5' if 'Cloud' in MODE else 'ms-marco-MiniLM-L-12-v2'} |",
+        f"| **Drug guideline sections** | {get_store_count(pharma_store)} |",
+        f"| **Clinical trial sections** | {get_store_count(trial_store)} |",
         "",
         "> Answers are generated from indexed documents only. Always use clinical judgment.",
     ]
@@ -496,7 +497,7 @@ has_patients = bool(init_choices)
 
 READY_STATUS = _status_banner("info", "Ready to upload", "Select PDF files, then click the upload button.")
 
-with gr.Blocks(title="Clinical Co-Pilot", css=CSS, theme=gr.themes.Soft(primary_hue="sky")) as demo:
+with gr.Blocks(title="Clinical Co-Pilot") as demo:
 
     gr.HTML("""
     <div class="app-header">
@@ -729,4 +730,4 @@ with gr.Blocks(title="Clinical Co-Pilot", css=CSS, theme=gr.themes.Soft(primary_
     )
 
 if __name__ == "__main__":
-    demo.launch(share=False)
+    demo.launch(share=False, theme=gr.themes.Soft(primary_hue="sky"), css=CSS)

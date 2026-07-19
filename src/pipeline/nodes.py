@@ -1,8 +1,8 @@
 import re
-from src.pipeline.transcriber import MedicalTranscriber
 from src.retrieval.router import SemanticRouter
 from src.retrieval.hybrid_retriever import load_vector_stores, build_retriever
 from src.pipeline.prompts import CLINICAL_SYSTEM_PROMPT, CLINICAL_USER_TEMPLATE
+from src.utils import config
 from src.utils.config import get_llm
 
 IMAGE_CAPTION_MAX_CHARS = 500
@@ -27,7 +27,7 @@ def transcribe_node(state):
     if state.get("transcribed_query", "").strip():
         print(f"[Node 1 - Transcribe] Pre-filled: {state['transcribed_query']}")
         return state
-    transcriber = MedicalTranscriber(model_size= "base")
+    transcriber = config.get_stt()
     result = transcriber.transcribe(state['audio_path'])
     print(f"[Node 1 - Transcribe] {result['text']}")
     return {**state ,"transcribed_query" : result["text"]}

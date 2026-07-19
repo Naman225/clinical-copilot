@@ -21,3 +21,7 @@ pydantic
 openai-whisper
 sentence-transformers
 rank_bm25
+langchain-pinecone
+pinecone
+langchain-cohere
+groq

@@ -1,4 +1,4 @@
-from langchain_huggingface import HuggingFaceEmbeddings
+from typing import Any
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np 
 
@@ -47,7 +47,7 @@ COLLECTION_MAP = {
 }
 
 class SemanticRouter:
-    def __init__(self, embedder : HuggingFaceEmbeddings):
+    def __init__(self, embedder: Any):
         self.embedder = embedder
         self.route_embedder = {
             route : embedder.embed_documents(examples)

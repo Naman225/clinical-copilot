@@ -1,11 +1,11 @@
 from typing import TypedDict, List, Dict, Any
 from langgraph.graph import StateGraph, END
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 from src.pipeline.nodes import (
     transcribe_node, classify_node, retrieve_node, generate_node, verify_node
 )
 from src.retrieval.hybrid_retriever import load_vector_stores
+from src.utils import config
 
 class ClinicalState(TypedDict):
     audio_path : str
@@ -62,11 +62,7 @@ def get_pipeline():
     global _embedder, _vector_stores, _pipeline
     if _pipeline is None:
         print("Loading pipeline resources...")
-        _embedder = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2",
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": True}
-        )
+        _embedder = config.get_embedder()
         _vector_stores = load_vector_stores("./db", _embedder)
         _pipeline = build_graph()
         print("Pipeline ready.")

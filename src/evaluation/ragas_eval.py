@@ -186,7 +186,7 @@ def run_ragas_evaluation(
     max_questions: int = 40,
     pipeline_cache_path: str = "pipeline_cache.json",
     raw_results_path: str = "ragas_raw_results.csv",
-    use_cache: bool = True,
+    use_cache: bool = True, 
     resume_scoring: bool = True,
 ) -> dict:
     workers = 1 if config.USE_LOCAL else 4
