@@ -114,10 +114,12 @@ def remove_all_patients(patient_store=None):
 
 
 def ensure_sample_patient(patient_store=None):
-    """If the patient registry is empty, populates a default sample patient record (`Patient 1001`) from synthetic testing chunks so the UI is immediately interactive."""
+    """Populates default sample patient records (`1001`, `1002`, `1003`) from synthetic testing chunks so the UI is immediately interactive with rich clinical cases."""
     registry = load_registry()
-    if not registry:
-        print("Patient registry is empty. Initializing default sample patient (1001)...")
+    sample_ids = ["1001", "1002", "1003"]
+    missing_ids = [pid for pid in sample_ids if pid not in registry]
+    if missing_ids:
+        print(f"Initializing missing sample patients ({', '.join(missing_ids)})...")
         sample_path = Path("./src/evaluation/sample_patient_chunks.json")
         if not sample_path.exists():
             sample_path = Path("./data_ingestion/sample_patient_chunks.json")
@@ -125,20 +127,31 @@ def ensure_sample_patient(patient_store=None):
             try:
                 chunks = json.loads(sample_path.read_text())
                 from langchain_core.documents import Document
-                docs = []
+                docs_by_patient = {}
                 for c in chunks:
                     meta = dict(c.get("metadata", {}))
-                    meta["patient_id"] = "1001"
-                    docs.append(Document(page_content=c["page_content"], metadata=meta))
-                docs = filter_complex_metadata(docs)
-                if patient_store is not None and hasattr(patient_store, "add_documents"):
-                    patient_store.add_documents(docs)
-                registry["1001"] = {
-                    "pdf_path": "sample_patient_report.pdf",
-                    "chunk_count": len(docs),
-                    "file_name": "sample_patient_report (NSTEMI Cardiac Case)"
-                }
+                    pid = str(meta.get("patient_id", "1001"))
+                    if pid in missing_ids:
+                        meta["patient_id"] = pid
+                        doc = Document(page_content=c["page_content"], metadata=meta)
+                        docs_by_patient.setdefault(pid, []).append(doc)
+                
+                all_docs = []
+                for pid, docs in docs_by_patient.items():
+                    filtered_docs = filter_complex_metadata(docs)
+                    all_docs.extend(filtered_docs)
+                    first_meta = filtered_docs[0].metadata if filtered_docs else {}
+                    file_name = first_meta.get("file_name", f"sample_patient_{pid}.pdf")
+                    display_name = first_meta.get("display_name", file_name)
+                    registry[pid] = {
+                        "pdf_path": first_meta.get("source", f"sample_patient_{pid}.pdf"),
+                        "chunk_count": len(filtered_docs),
+                        "file_name": display_name
+                    }
+                
+                if patient_store is not None and hasattr(patient_store, "add_documents") and all_docs:
+                    patient_store.add_documents(all_docs)
                 save_registry(registry)
-                print(f"✓ Initialized sample patient 1001 ({len(docs)} chunks) into registry and vector store.")
+                print(f"✓ Initialized sample patients into registry ({len(registry)} total patients registered).")
             except Exception as e:
-                print(f"Warning initializing sample patient: {e}")
+                print(f"Warning initializing sample patients: {e}")

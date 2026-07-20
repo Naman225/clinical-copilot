@@ -2,9 +2,10 @@
   {
     "page_content": "ADMISSION CLINICAL NOTE — PATIENT: patient_test_001\nAge: 54 | Sex: Male | Admission Date: 2026-06-15\nChief Complaint: Acute onset substernal chest pain radiating to left arm and jaw, accompanied by diaphoresis and mild shortness of breath starting 2 hours prior to arrival.\nHistory of Present Illness (HPI): Patient is a 54-year-old male with a significant past medical history of hypertension, type 2 diabetes mellitus, and hyperlipidemia. He reports waking up at 05:00 with severe crushing chest pain (8/10 severity). Symptoms were not relieved by rest or sublingual nitroglycerin administered by EMS.\nPhysical Examination: Blood pressure 162/98 mmHg, Heart rate 104 bpm, Respiratory rate 22/min, O2 Saturation 95% on room air. Lungs clear to auscultation bilaterally. Heart: tachycardia, regular rhythm, no murmurs, rubs, or gallops.",
     "metadata": {
-      "patient_id": "patient_test_001",
-      "source": "data_ingestion/multi_patient_db/patient_test_001/patient_report.pdf",
-      "file_name": "patient_report.pdf",
+      "patient_id": "1001",
+      "source": "data_ingestion/multi_patient_db/patient_test_001/sample_cardiac_nstemi.pdf",
+      "file_name": "sample_cardiac_nstemi.pdf",
+      "display_name": "sample_cardiac_nstemi.pdf (NSTEMI Cardiac Case)",
       "content_type": "text",
       "page_number": 1,
       "element_index": 0,
@@ -14,9 +15,10 @@
   {
     "page_content": "LABORATORY PANEL RESULTS (Extracted Structured Table) — Page 2\n| Test Name | Result | Reference Range | Status | Clinical Note |\n|---|---|---|---|---|\n| Troponin I (High Sensitivity) | 0.85 ng/mL | < 0.04 ng/mL | HIGH (CRITICAL) | Indicative of myocardial injury / NSTEMI |\n| Total Cholesterol | 245 mg/dL | < 200 mg/dL | HIGH | Dyslipidemia |\n| LDL Cholesterol | 168 mg/dL | < 100 mg/dL | HIGH | Requires intensive statin therapy |\n| HDL Cholesterol | 36 mg/dL | > 40 mg/dL | LOW | Suboptimal cardio-protection |\n| Serum Creatinine | 1.1 mg/dL | 0.7 - 1.3 mg/dL | NORMAL | Stable renal function |\n| Potassium | 4.1 mEq/L | 3.5 - 5.0 mEq/L | NORMAL | Within normal limits |\n| HbA1c | 7.8% | < 5.7% | HIGH | Suboptimal diabetes control |",
     "metadata": {
-      "patient_id": "patient_test_001",
-      "source": "data_ingestion/multi_patient_db/patient_test_001/patient_report.pdf",
-      "file_name": "patient_report.pdf",
+      "patient_id": "1001",
+      "source": "data_ingestion/multi_patient_db/patient_test_001/sample_cardiac_nstemi.pdf",
+      "file_name": "sample_cardiac_nstemi.pdf",
+      "display_name": "sample_cardiac_nstemi.pdf (NSTEMI Cardiac Case)",
       "content_type": "table",
       "page_number": 2,
       "element_index": 1,
@@ -26,35 +28,168 @@
   {
     "page_content": "Medical Image — Page 2:\nDiagnostic Imaging Report: Portable Admission Chest X-Ray (AP View).\nFindings: Mild cardiomegaly noted with cardio-thoracic ratio of 0.54. The aortic knob is mildly tortuous with peripheral calcification. Lung fields are clear bilaterally with no evidence of focal consolidation, pneumothorax, or pleural effusion. Pulmonary vascular markings are within normal limits without signs of overt interstitial pulmonary edema. Costophrenic angles are sharp bilaterally.\nClinical Impression: Mild cardiomegaly without acute congestive heart failure or active pulmonary infiltrates.",
     "metadata": {
-      "patient_id": "patient_test_001",
-      "source": "data_ingestion/multi_patient_db/patient_test_001/patient_report.pdf",
-      "file_name": "patient_report.pdf",
+      "patient_id": "1001",
+      "source": "data_ingestion/multi_patient_db/patient_test_001/sample_cardiac_nstemi.pdf",
+      "file_name": "sample_cardiac_nstemi.pdf",
+      "display_name": "sample_cardiac_nstemi.pdf (NSTEMI Cardiac Case)",
       "content_type": "medical_image",
       "page_number": 2,
-      "image_path": "extracted_images/patient_test_001/image_0.png"
+      "image_path": "extracted_images/1001/image_0.png"
     }
   },
   {
     "page_content": "Medical Image — Page 3:\nDiagnostic Imaging Report: 12-Lead Electrocardiogram (ECG).\nFindings: Sinus tachycardia at 104 beats per minute. Normal axis (+45 degrees). PR interval 160 ms (normal), QRS duration 88 ms (normal). Horizontal to downsloping ST-segment depression of 1.5 to 2.0 mm noted across lateral leads V4, V5, V6, as well as leads I and aVL. T-wave inversions present in V5-V6. No pathological Q waves or ST elevations noted in anterior, inferior, or right precordial leads.\nClinical Impression: ST-segment depression and T-wave inversion indicative of acute lateral subendocardial ischemia consistent with Non-ST-Elevation Myocardial Infarction (NSTEMI).",
     "metadata": {
-      "patient_id": "patient_test_001",
-      "source": "data_ingestion/multi_patient_db/patient_test_001/patient_report.pdf",
-      "file_name": "patient_report.pdf",
+      "patient_id": "1001",
+      "source": "data_ingestion/multi_patient_db/patient_test_001/sample_cardiac_nstemi.pdf",
+      "file_name": "sample_cardiac_nstemi.pdf",
+      "display_name": "sample_cardiac_nstemi.pdf (NSTEMI Cardiac Case)",
       "content_type": "medical_image",
       "page_number": 3,
-      "image_path": "extracted_images/patient_test_001/image_1.png"
+      "image_path": "extracted_images/1001/image_1.png"
     }
   },
   {
     "page_content": "DISCHARGE SUMMARY & PRESCRIBED REGIMEN — PATIENT: patient_test_001\nDischarge Date: 2026-06-19 | Hospital Course: Patient underwent successful coronary angiography demonstrating 85% stenosis of the left circumflex artery (LCx). A single drug-eluting stent (DES) was successfully placed without complications. Post-procedure cardiac enzymes trended downward and chest pain completely resolved.\nDischarge Medications:\n1. Dual Antiplatelet Therapy (DAPT): Aspirin 81 mg PO daily + Clopidogrel 75 mg PO daily for exactly 12 months post-stent placement.\n2. High-Intensity Statin Therapy: Atorvastatin 80 mg PO once daily at bedtime for LDL reduction and plaque stabilization.\n3. Beta-Blocker: Metoprolol Succinate 25 mg PO once daily for cardiac rate control and myocardial protection.\n4. ACE Inhibitor: Lisinopril 10 mg PO once daily for blood pressure optimization.\nFollow-up: Cardiology clinic appointment scheduled in 2 weeks. Return to emergency department immediately if chest pain, severe dyspnea, or syncope recurs.",
     "metadata": {
-      "patient_id": "patient_test_001",
-      "source": "data_ingestion/multi_patient_db/patient_test_001/patient_report.pdf",
-      "file_name": "patient_report.pdf",
+      "patient_id": "1001",
+      "source": "data_ingestion/multi_patient_db/patient_test_001/sample_cardiac_nstemi.pdf",
+      "file_name": "sample_cardiac_nstemi.pdf",
+      "display_name": "sample_cardiac_nstemi.pdf (NSTEMI Cardiac Case)",
       "content_type": "text",
       "page_number": 4,
       "element_index": 4,
       "section_headings": "Discharge Summary > Prescribed Medications & Follow-up"
+    }
+  },
+
+  {
+    "page_content": "ADMISSION CLINICAL NOTE — PATIENT: patient_test_002\nAge: 42 | Sex: Female | Admission Date: 2026-06-20\nChief Complaint: Severe lethargy, nausea, vomiting, polyuria, and polydipsia for the past 3 days.\nHistory of Present Illness (HPI): Patient is a 42-year-old female with poorly controlled type 2 diabetes mellitus and diabetic nephropathy. She presented to the emergency department after her family noticed mental status confusion and Kussmaul breathing. She reports running out of her home insulin 4 days ago and attempting to manage symptoms with oral fluids.\nPhysical Examination: Blood pressure 98/62 mmHg, Heart rate 118 bpm, Respiratory rate 28/min (deep, rapid breathing with fruity acetone breath odor), Temperature 37.1°C, O2 Saturation 98% on room air. Abdomen: soft, generalized mild tenderness, no rebound or guarding. Neurological: lethargic but rousable, oriented to person and place only.",
+    "metadata": {
+      "patient_id": "1002",
+      "source": "data_ingestion/multi_patient_db/patient_test_002/sample_diabetic_ketoacidosis.pdf",
+      "file_name": "sample_diabetic_ketoacidosis.pdf",
+      "display_name": "sample_diabetic_ketoacidosis.pdf (Diabetic Ketoacidosis Case)",
+      "content_type": "text",
+      "page_number": 1,
+      "element_index": 0,
+      "section_headings": "Admission Note > Emergency Evaluation"
+    }
+  },
+  {
+    "page_content": "LABORATORY PANEL RESULTS (Extracted Structured Table) — Page 2\n| Test Name | Result | Reference Range | Status | Clinical Note |\n|---|---|---|---|---|\n| Blood Glucose | 485 mg/dL | 70 - 99 mg/dL | HIGH (CRITICAL) | Severe hyperglycemia |\n| Arterial Blood pH | 7.18 | 7.35 - 7.45 | LOW (CRITICAL) | Severe metabolic acidosis |\n| Serum Bicarbonate (HCO3) | 10 mEq/L | 22 - 28 mEq/L | LOW (CRITICAL) | Elevated anion gap acidosis (Gap = 24) |\n| Serum Beta-Hydroxybutyrate | 6.8 mmol/L | < 0.5 mmol/L | HIGH (CRITICAL) | Significant ketonemia consistent with DKA |\n| Serum Potassium | 5.6 mEq/L | 3.5 - 5.0 mEq/L | HIGH | Hyperkalemia secondary to acidosis shift |\n| Serum Sodium | 131 mEq/L | 135 - 145 mEq/L | LOW | Pseudohyponatremia due to hyperglycemia |\n| Serum Creatinine | 1.8 mg/dL | 0.6 - 1.1 mg/dL | HIGH | Acute kidney injury superimposed on chronic diabetic nephropathy |\n| HbA1c | 11.2% | < 5.7% | HIGH | Chronic severe hyperglycemia |",
+    "metadata": {
+      "patient_id": "1002",
+      "source": "data_ingestion/multi_patient_db/patient_test_002/sample_diabetic_ketoacidosis.pdf",
+      "file_name": "sample_diabetic_ketoacidosis.pdf",
+      "display_name": "sample_diabetic_ketoacidosis.pdf (Diabetic Ketoacidosis Case)",
+      "content_type": "table",
+      "page_number": 2,
+      "element_index": 1,
+      "section_headings": "Laboratory Results > Critical Chemistry & Arterial Blood Gas"
+    }
+  },
+  {
+    "page_content": "Medical Image — Page 2:\nDiagnostic Imaging Report: Renal & Bladder Ultrasound.\nFindings: Right kidney measures 10.8 cm, left kidney measures 11.0 cm. Both kidneys demonstrate increased cortical echogenicity and loss of corticomedullary differentiation, features consistent with chronic diabetic nephropathy. No hydronephrosis, nephrolithiasis, or perinephric fluid collection seen. Urinary bladder wall is normal in thickness with no post-void residual volume.\nClinical Impression: Bilateral medical renal disease consistent with diabetic nephropathy. No evidence of acute obstructive uropathy.",
+    "metadata": {
+      "patient_id": "1002",
+      "source": "data_ingestion/multi_patient_db/patient_test_002/sample_diabetic_ketoacidosis.pdf",
+      "file_name": "sample_diabetic_ketoacidosis.pdf",
+      "display_name": "sample_diabetic_ketoacidosis.pdf (Diabetic Ketoacidosis Case)",
+      "content_type": "medical_image",
+      "page_number": 2,
+      "image_path": "extracted_images/1002/image_0.png"
+    }
+  },
+  {
+    "page_content": "INPATIENT CLINICAL PROGRESS NOTE — ICU DAY 2\nPatient responded well to aggressive intravenous normal saline resuscitation and continuous insulin infusion protocol (0.1 units/kg/hr). Arterial pH improved from 7.18 to 7.36, anion gap closed from 24 to 11, and blood glucose stabilized at 165 mg/dL. Potassium was carefully replaced as acidosis corrected. The continuous insulin drip was transitioned to subcutaneous basal-bolus insulin therapy after overlap dosing.",
+    "metadata": {
+      "patient_id": "1002",
+      "source": "data_ingestion/multi_patient_db/patient_test_002/sample_diabetic_ketoacidosis.pdf",
+      "file_name": "sample_diabetic_ketoacidosis.pdf",
+      "display_name": "sample_diabetic_ketoacidosis.pdf (Diabetic Ketoacidosis Case)",
+      "content_type": "text",
+      "page_number": 3,
+      "element_index": 3,
+      "section_headings": "Progress Note > ICU Stabilization"
+    }
+  },
+  {
+    "page_content": "DISCHARGE SUMMARY & PRESCRIBED REGIMEN — PATIENT: patient_test_002\nDischarge Date: 2026-06-24 | Diagnosis: Diabetic Ketoacidosis (resolved), Type 2 Diabetes Mellitus with Chronic Kidney Disease Stage 3a.\nDischarge Medications:\n1. Basal Insulin: Insulin Glargine (Lantus) 24 units subcutaneously once daily at bedtime.\n2. Prandial Insulin: Insulin Lispro (Humalog) 6 units subcutaneously 15 minutes before each major meal (TID).\n3. SGLT2 Inhibitor: Dapagliflozin 10 mg PO once daily in the morning for renal and cardiovascular protection (initiated after DKA resolution and stability verified).\n4. ACE Inhibitor: Enalapril 10 mg PO twice daily for proteinuria reduction and nephroprotection.\nFollow-up: Endocrinology clinic in 1 week. Strict instructions given regarding home blood glucose monitoring 4 times daily and ketone checking if blood glucose exceeds 250 mg/dL.",
+    "metadata": {
+      "patient_id": "1002",
+      "source": "data_ingestion/multi_patient_db/patient_test_002/sample_diabetic_ketoacidosis.pdf",
+      "file_name": "sample_diabetic_ketoacidosis.pdf",
+      "display_name": "sample_diabetic_ketoacidosis.pdf (Diabetic Ketoacidosis Case)",
+      "content_type": "text",
+      "page_number": 4,
+      "element_index": 4,
+      "section_headings": "Discharge Summary > Insulin & Renal Regimen"
+    }
+  },
+
+  {
+    "page_content": "ADMISSION CLINICAL NOTE — PATIENT: patient_test_003\nAge: 68 | Sex: Male | Admission Date: 2026-06-22\nChief Complaint: High fever, productive cough with rust-colored sputum, pleuritic right-sided chest pain, and shaking chills for 48 hours.\nHistory of Present Illness (HPI): Patient is a 68-year-old retired male with chronic obstructive pulmonary disease (COPD) and benign prostatic hyperplasia. He developed acute respiratory distress and high fevers at home. *** IMPORTANT DRUG ALLERGY WARNING: Patient has a documented severe anaphylactic reaction (hives, wheezing, hypotension) to PENICILLINS and AMOXICILLIN. ***\nPhysical Examination: Temperature 39.3°C (102.8°F), Blood pressure 104/66 mmHg, Heart rate 112 bpm, Respiratory rate 26/min, O2 Saturation 89% on room air (improved to 94% on 3L nasal cannula). Chest auscultation reveals coarse crackles, bronchial breath sounds, and dullness to percussion over the right lower lung field.",
+    "metadata": {
+      "patient_id": "1003",
+      "source": "data_ingestion/multi_patient_db/patient_test_003/sample_pneumonia_sepsis.pdf",
+      "file_name": "sample_pneumonia_sepsis.pdf",
+      "display_name": "sample_pneumonia_sepsis.pdf (Pneumonia & Penicillin Allergy Case)",
+      "content_type": "text",
+      "page_number": 1,
+      "element_index": 0,
+      "section_headings": "Admission Note > Emergency & Allergy Profile"
+    }
+  },
+  {
+    "page_content": "LABORATORY PANEL RESULTS (Extracted Structured Table) — Page 2\n| Test Name | Result | Reference Range | Status | Clinical Note |\n|---|---|---|---|---|\n| White Blood Cell Count (WBC) | 18,500 /uL | 4,500 - 11,000 /uL | HIGH (CRITICAL) | Leukocytosis with 14% band forms (left shift) |\n| Neutrophils (%) | 86% | 40 - 70% | HIGH | Acute bacterial infection response |\n| C-Reactive Protein (CRP) | 142 mg/L | < 10 mg/L | HIGH | Severe systemic inflammation |\n| Procalcitonin | 3.4 ng/mL | < 0.15 ng/mL | HIGH (CRITICAL) | Strongly suggestive of bacterial pneumonia / sepsis |\n| Serum Creatinine | 1.3 mg/dL | 0.7 - 1.3 mg/dL | NORMAL | Baseline mild elevation |\n| Blood Cultures (Set 1 & 2) | Pending | Negative at 5 days | PENDING | Incubating — preliminary Gram-positive diplococci on Gram stain |",
+    "metadata": {
+      "patient_id": "1003",
+      "source": "data_ingestion/multi_patient_db/patient_test_003/sample_pneumonia_sepsis.pdf",
+      "file_name": "sample_pneumonia_sepsis.pdf",
+      "display_name": "sample_pneumonia_sepsis.pdf (Pneumonia & Penicillin Allergy Case)",
+      "content_type": "table",
+      "page_number": 2,
+      "element_index": 1,
+      "section_headings": "Laboratory Results > Hematology & Sepsis Biomarkers"
+    }
+  },
+  {
+    "page_content": "Medical Image — Page 2:\nDiagnostic Imaging Report: PA and Lateral Chest X-Ray.\nFindings: Dense, lobar consolidation visible involving the right lower lobe with prominent air bronchograms. The right costophrenic angle is blunted indicating a small, reactive parapneumonic pleural effusion. The left lung is clear without infiltrates or masses. Heart size is within normal limits. Trachea is midline.\nClinical Impression: Right lower lobe lobar pneumonia with small associated pleural effusion. Findings consistent with typical bacterial community-acquired pneumonia (e.g., Streptococcus pneumoniae).",
+    "metadata": {
+      "patient_id": "1003",
+      "source": "data_ingestion/multi_patient_db/patient_test_003/sample_pneumonia_sepsis.pdf",
+      "file_name": "sample_pneumonia_sepsis.pdf",
+      "display_name": "sample_pneumonia_sepsis.pdf (Pneumonia & Penicillin Allergy Case)",
+      "content_type": "medical_image",
+      "page_number": 2,
+      "image_path": "extracted_images/1003/image_0.png"
+    }
+  },
+  {
+    "page_content": "INPATIENT ANTIMICROBIAL SELECTION & COURSE — HOSPITAL DAY 3\nDue to the patient's severe anaphylactic allergy to Penicillins and beta-lactams (specifically excluding Piperacillin/Tazobactam, Amoxicillin, and Cephalosporins), empirical intravenous coverage for severe community-acquired pneumonia was initiated with IV Levofloxacin 750 mg once daily. By hospital day 3, blood cultures grew Streptococcus pneumoniae sensitive to fluoroquinolones. Fever resolved (`T max 37.2°C`), WBC trended down from 18,500 to 9,800 /uL, and oxygen requirement decreased to room air.",
+    "metadata": {
+      "patient_id": "1003",
+      "source": "data_ingestion/multi_patient_db/patient_test_003/sample_pneumonia_sepsis.pdf",
+      "file_name": "sample_pneumonia_sepsis.pdf",
+      "display_name": "sample_pneumonia_sepsis.pdf (Pneumonia & Penicillin Allergy Case)",
+      "content_type": "text",
+      "page_number": 3,
+      "element_index": 3,
+      "section_headings": "Inpatient Management > Antimicrobial Stewardship & Penicillin Allergy"
+    }
+  },
+  {
+    "page_content": "DISCHARGE SUMMARY & PRESCRIBED REGIMEN — PATIENT: patient_test_003\nDischarge Date: 2026-06-26 | Diagnosis: Severe Community-Acquired Pneumonia (Streptococcus pneumoniae) with secondary sepsis, resolved.\nDischarge Medications:\n1. Antibiotic Therapy: Levofloxacin 750 mg PO once daily for an additional 5 days to complete a total 10-day course (CRITICAL: Do not prescribe beta-lactams due to penicillin anaphylaxis).\n2. Bronchodilator Maintenance: Tiotropium (Spiriva Respimat) 2.5 mcg 2 inhalations once daily for underlying COPD control.\n3. Rescue Inhaler: Albuterol sulfate 90 mcg 1-2 puffs every 4-6 hours PRN for shortness of breath or wheezing.\nFollow-up: Primary care clinic appointment in 10 days with repeat chest X-ray scheduled in 6 weeks to ensure complete radiographic resolution of right lower lobe consolidation.",
+    "metadata": {
+      "patient_id": "1003",
+      "source": "data_ingestion/multi_patient_db/patient_test_003/sample_pneumonia_sepsis.pdf",
+      "file_name": "sample_pneumonia_sepsis.pdf",
+      "display_name": "sample_pneumonia_sepsis.pdf (Pneumonia & Penicillin Allergy Case)",
+      "content_type": "text",
+      "page_number": 4,
+      "element_index": 4,
+      "section_headings": "Discharge Summary > Outpatient Antibiotics & COPD Care"
     }
   }
 ]
