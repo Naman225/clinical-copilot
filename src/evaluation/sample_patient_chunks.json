@@ -1,0 +1,60 @@
+[
+  {
+    "page_content": "ADMISSION CLINICAL NOTE — PATIENT: patient_test_001\nAge: 54 | Sex: Male | Admission Date: 2026-06-15\nChief Complaint: Acute onset substernal chest pain radiating to left arm and jaw, accompanied by diaphoresis and mild shortness of breath starting 2 hours prior to arrival.\nHistory of Present Illness (HPI): Patient is a 54-year-old male with a significant past medical history of hypertension, type 2 diabetes mellitus, and hyperlipidemia. He reports waking up at 05:00 with severe crushing chest pain (8/10 severity). Symptoms were not relieved by rest or sublingual nitroglycerin administered by EMS.\nPhysical Examination: Blood pressure 162/98 mmHg, Heart rate 104 bpm, Respiratory rate 22/min, O2 Saturation 95% on room air. Lungs clear to auscultation bilaterally. Heart: tachycardia, regular rhythm, no murmurs, rubs, or gallops.",
+    "metadata": {
+      "patient_id": "patient_test_001",
+      "source": "data_ingestion/multi_patient_db/patient_test_001/patient_report.pdf",
+      "file_name": "patient_report.pdf",
+      "content_type": "text",
+      "page_number": 1,
+      "element_index": 0,
+      "section_headings": "Admission Note > History of Present Illness"
+    }
+  },
+  {
+    "page_content": "LABORATORY PANEL RESULTS (Extracted Structured Table) — Page 2\n| Test Name | Result | Reference Range | Status | Clinical Note |\n|---|---|---|---|---|\n| Troponin I (High Sensitivity) | 0.85 ng/mL | < 0.04 ng/mL | HIGH (CRITICAL) | Indicative of myocardial injury / NSTEMI |\n| Total Cholesterol | 245 mg/dL | < 200 mg/dL | HIGH | Dyslipidemia |\n| LDL Cholesterol | 168 mg/dL | < 100 mg/dL | HIGH | Requires intensive statin therapy |\n| HDL Cholesterol | 36 mg/dL | > 40 mg/dL | LOW | Suboptimal cardio-protection |\n| Serum Creatinine | 1.1 mg/dL | 0.7 - 1.3 mg/dL | NORMAL | Stable renal function |\n| Potassium | 4.1 mEq/L | 3.5 - 5.0 mEq/L | NORMAL | Within normal limits |\n| HbA1c | 7.8% | < 5.7% | HIGH | Suboptimal diabetes control |",
+    "metadata": {
+      "patient_id": "patient_test_001",
+      "source": "data_ingestion/multi_patient_db/patient_test_001/patient_report.pdf",
+      "file_name": "patient_report.pdf",
+      "content_type": "table",
+      "page_number": 2,
+      "element_index": 1,
+      "section_headings": "Laboratory Results > Chemistry Panel"
+    }
+  },
+  {
+    "page_content": "Medical Image — Page 2:\nDiagnostic Imaging Report: Portable Admission Chest X-Ray (AP View).\nFindings: Mild cardiomegaly noted with cardio-thoracic ratio of 0.54. The aortic knob is mildly tortuous with peripheral calcification. Lung fields are clear bilaterally with no evidence of focal consolidation, pneumothorax, or pleural effusion. Pulmonary vascular markings are within normal limits without signs of overt interstitial pulmonary edema. Costophrenic angles are sharp bilaterally.\nClinical Impression: Mild cardiomegaly without acute congestive heart failure or active pulmonary infiltrates.",
+    "metadata": {
+      "patient_id": "patient_test_001",
+      "source": "data_ingestion/multi_patient_db/patient_test_001/patient_report.pdf",
+      "file_name": "patient_report.pdf",
+      "content_type": "medical_image",
+      "page_number": 2,
+      "image_path": "extracted_images/patient_test_001/image_0.png"
+    }
+  },
+  {
+    "page_content": "Medical Image — Page 3:\nDiagnostic Imaging Report: 12-Lead Electrocardiogram (ECG).\nFindings: Sinus tachycardia at 104 beats per minute. Normal axis (+45 degrees). PR interval 160 ms (normal), QRS duration 88 ms (normal). Horizontal to downsloping ST-segment depression of 1.5 to 2.0 mm noted across lateral leads V4, V5, V6, as well as leads I and aVL. T-wave inversions present in V5-V6. No pathological Q waves or ST elevations noted in anterior, inferior, or right precordial leads.\nClinical Impression: ST-segment depression and T-wave inversion indicative of acute lateral subendocardial ischemia consistent with Non-ST-Elevation Myocardial Infarction (NSTEMI).",
+    "metadata": {
+      "patient_id": "patient_test_001",
+      "source": "data_ingestion/multi_patient_db/patient_test_001/patient_report.pdf",
+      "file_name": "patient_report.pdf",
+      "content_type": "medical_image",
+      "page_number": 3,
+      "image_path": "extracted_images/patient_test_001/image_1.png"
+    }
+  },
+  {
+    "page_content": "DISCHARGE SUMMARY & PRESCRIBED REGIMEN — PATIENT: patient_test_001\nDischarge Date: 2026-06-19 | Hospital Course: Patient underwent successful coronary angiography demonstrating 85% stenosis of the left circumflex artery (LCx). A single drug-eluting stent (DES) was successfully placed without complications. Post-procedure cardiac enzymes trended downward and chest pain completely resolved.\nDischarge Medications:\n1. Dual Antiplatelet Therapy (DAPT): Aspirin 81 mg PO daily + Clopidogrel 75 mg PO daily for exactly 12 months post-stent placement.\n2. High-Intensity Statin Therapy: Atorvastatin 80 mg PO once daily at bedtime for LDL reduction and plaque stabilization.\n3. Beta-Blocker: Metoprolol Succinate 25 mg PO once daily for cardiac rate control and myocardial protection.\n4. ACE Inhibitor: Lisinopril 10 mg PO once daily for blood pressure optimization.\nFollow-up: Cardiology clinic appointment scheduled in 2 weeks. Return to emergency department immediately if chest pain, severe dyspnea, or syncope recurs.",
+    "metadata": {
+      "patient_id": "patient_test_001",
+      "source": "data_ingestion/multi_patient_db/patient_test_001/patient_report.pdf",
+      "file_name": "patient_report.pdf",
+      "content_type": "text",
+      "page_number": 4,
+      "element_index": 4,
+      "section_headings": "Discharge Summary > Prescribed Medications & Follow-up"
+    }
+  }
+]
