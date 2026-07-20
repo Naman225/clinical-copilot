@@ -202,7 +202,6 @@ def _ref_loading():
     """
 
 # ── patient upload ────────────────────────────────────────────────────
-@spaces.GPU(duration=25)
 def upload_patient(pdf_files):
     if not pdf_files:
         return (
@@ -246,7 +245,6 @@ def upload_patient(pdf_files):
     )
 
 # ── reference upload ──────────────────────────────────────────────────
-@spaces.GPU(duration=25)
 def upload_reference(pdf_files, ref_type):
     stats = _stats_html()
     if not pdf_files:
@@ -315,7 +313,6 @@ def _format_query_meta(result: dict) -> str:
     </div>
     """
 
-@spaces.GPU(duration=25)
 def _run_voice_pipeline(audio_path, patient_id):
     return run_pipeline(audio_path=audio_path, patient_id=str(patient_id))
 
