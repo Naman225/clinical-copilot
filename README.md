@@ -1,16 +1,3 @@
----
-title: Clinical Co-Pilot
-emoji: 🏥
-colorFrom: blue
-colorTo: indigo
-sdk: gradio
-sdk_version: 5.34.0
-app_file: app.py
-pinned: true
-license: mit
-short_description: Multimodal Clinical RAG Co-Pilot with Voice & Text Queries
----
-
 <div align="center">
 
 # 🏥 Clinical Co-Pilot
