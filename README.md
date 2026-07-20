@@ -2,7 +2,7 @@
 title: Clinical Co-Pilot
 emoji: 🏥
 colorFrom: blue
-colorTo: cyan
+colorTo: indigo
 sdk: gradio
 sdk_version: 5.34.0
 app_file: app.py
