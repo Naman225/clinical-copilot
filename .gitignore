@@ -79,7 +79,6 @@ extracted_images/
 ## Evaluation artifacts (regenerable, large, reveal patient data)
 pipeline_cache*
 ragas_raw_results*
-ragas_results*
 evaluation_dataset.json
 *cache*.json
 
