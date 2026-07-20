@@ -1,3 +1,16 @@
+---
+title: Clinical Co-Pilot
+emoji: 🏥
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+sdk_version: 5.34.0
+app_file: app.py
+pinned: true
+license: mit
+short_description: Multimodal Clinical RAG Co-Pilot with Voice & Text Queries
+---
+
 <div align="center">
 
 # 🏥 Clinical Co-Pilot
@@ -105,64 +118,30 @@ Every answer includes traceable `[Source N]` references linking back to:
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Frontend** | Gradio | Interactive medical UI with dark theme |
-| **Orchestration** | LangGraph | Stateful multi-node pipeline with conditional edges |
-| **Document Parsing** | Docling | PDF → structured text, tables, and image extraction |
-| **Vector Store** | Pinecone (Serverless) | Cloud-native vector database with namespace isolation |
-| **Embeddings** | Cohere embed-v4.0 | High-quality 1536-dim embeddings for clinical text |
-| **Reranking** | Cohere rerank-v3.5 | Cross-encoder reranking for precision |
-| **LLM** | OpenRouter (free tier) | Clinical response generation |
-| **Vision LLM** | OpenRouter (free tier) | Medical image captioning |
-| **Speech-to-Text** | Groq Whisper | Fast cloud transcription for voice queries |
-| **Keyword Search** | BM25 (rank_bm25) | Term-frequency retrieval for exact matches |
+### Core Frameworks
+- **Gradio 5** — Interactive UI with dynamic state, accordion transcriptions, and audio recording
+- **LangGraph** — Stateful workflow orchestration and conditional routing
+- **Pinecone** — Cloud vector database for scalable similarity search
+
+### AI Providers (Cloud Mode)
+- **OpenRouter** (`mistralai/mistral-7b-instruct`) — Clinical reasoning & grounded answer generation
+- **Cohere** (`embed-english-v3.0`, `rerank-english-v3.0`) — Semantic embeddings & precision reranking
+- **Groq** (`whisper-large-v3`) — Near-instantaneous voice-to-text transcription
+
+### Local Mode Options
+- **Ollama** (`mistral:instruct`, `llava`) — 100% local, air-gapped LLM and vision execution
+- **Local Whisper** (`faster-whisper`) — On-premise speech recognition
 
 ---
 
-## 📁 Project Structure
+## 🚀 Deployment & Setup
 
-```
-clinical-copilot/
-├── app.py                          # Gradio UI + event handlers
-├── requirements.txt                # Python dependencies
-├── assets/                         # README images
-│
-├── src/
-│   ├── pipeline/
-│   │   ├── graph.py                # LangGraph pipeline definition
-│   │   ├── nodes.py                # 5 pipeline nodes (transcribe → verify)
-│   │   ├── prompts.py              # Clinical system + user prompt templates
-│   │   └── transcriber.py          # Groq Whisper + local Whisper wrappers
-│   │
-│   ├── ingestion/
-│   │   ├── ingest.py               # Batch ingestion to Pinecone
-│   │   ├── pdf_loader.py           # Docling PDF parser (text + tables + images)
-│   │   ├── image_loader.py         # Vision LLM image captioning
-│   │   ├── patient_manager.py      # Patient CRUD + registry management
-│   │   └── reference_loader.py     # Drug guidelines / clinical trials loader
-│   │
-│   ├── retrieval/
-│   │   ├── hybrid_retriever.py     # BM25 + Pinecone + Cohere ensemble
-│   │   └── router.py              # Cosine-similarity semantic intent router
-│   │
-│   ├── utils/
-│   │   ├── config.py               # Model/API configuration (local vs cloud)
-│   │
-│   └── evaluation/
-│       ├── generate_question.py    # QA pair generation for evaluation
-│       └── ragas_eval.py           # RAGAS evaluation pipeline
-│
-└── .gitignore
-```
+### Hugging Face Spaces (Cloud Run)
 
----
+This application is optimized for deployment on **Hugging Face Spaces** (CPU Basic or zero-GPU):
 
-## 🚀 Deployment
-
-### Hugging Face Spaces (Recommended)
-
-The app is deployed on [Hugging Face Spaces](https://huggingface.co/spaces/Naman225/clinical-copilot). The following **Secrets** must be configured in the Space settings:
+1. Create a new Space on Hugging Face using the **Gradio** SDK
+2. Add the following **Repository Secrets** in Space Settings:
 
 | Secret | Description |
 |--------|-------------|
