@@ -33,6 +33,12 @@ except ImportError:
             return lambda func: func
     spaces = _SpacesMock()
 
+# Satisfy ZeroGPU space startup check without running real API calls in ZeroGPU subprocesses
+@spaces.GPU
+def _zero_gpu_placeholder():
+    pass
+
+
 
 # ── startup ──────────────────────────────────────────────────────────
 print("Initializing Clinical Co-Pilot...")
