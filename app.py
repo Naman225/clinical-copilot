@@ -497,7 +497,7 @@ has_patients = bool(init_choices)
 
 READY_STATUS = _status_banner("info", "Ready to upload", "Select PDF files, then click the upload button.")
 
-with gr.Blocks(title="Clinical Co-Pilot") as demo:
+with gr.Blocks(title="Clinical Co-Pilot", css=CSS, theme=gr.themes.Soft(primary_hue="sky")) as demo:
 
     gr.HTML("""
     <div class="app-header">
@@ -730,4 +730,4 @@ with gr.Blocks(title="Clinical Co-Pilot") as demo:
     )
 
 if __name__ == "__main__":
-    demo.launch(share=False, theme=gr.themes.Soft(primary_hue="sky"), css=CSS)
+    demo.launch(share=False)
