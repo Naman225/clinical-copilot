@@ -316,7 +316,6 @@ def _format_query_meta(result: dict) -> str:
 def _run_voice_pipeline(audio_path, patient_id):
     return run_pipeline(audio_path=audio_path, patient_id=str(patient_id))
 
-@spaces.GPU(duration=60)
 def _run(audio_path, text, patient_id):
     if not patient_id:
         return (
