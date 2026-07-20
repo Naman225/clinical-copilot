@@ -161,7 +161,6 @@ clinical-copilot/
 │   │
 │   ├── utils/
 │   │   ├── config.py               # Model/API configuration (local vs cloud)
-│   │   └── logger.py               # Logging utilities
 │   │
 │   └── evaluation/
 │       ├── generate_question.py    # QA pair generation for evaluation
