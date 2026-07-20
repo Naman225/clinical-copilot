@@ -111,3 +111,34 @@ def remove_all_patients(patient_store=None):
             elif item.is_file() and item.name != ".gitkeep":
                 item.unlink(missing_ok=True)
     print("All old patient data has been cleanly purged from Pinecone and local registries.")
+
+
+def ensure_sample_patient(patient_store=None):
+    """If the patient registry is empty, populates a default sample patient record (`Patient 1001`) from synthetic testing chunks so the UI is immediately interactive."""
+    registry = load_registry()
+    if not registry:
+        print("Patient registry is empty. Initializing default sample patient (1001)...")
+        sample_path = Path("./src/evaluation/sample_patient_chunks.json")
+        if not sample_path.exists():
+            sample_path = Path("./data_ingestion/sample_patient_chunks.json")
+        if sample_path.exists():
+            try:
+                chunks = json.loads(sample_path.read_text())
+                from langchain_core.documents import Document
+                docs = []
+                for c in chunks:
+                    meta = dict(c.get("metadata", {}))
+                    meta["patient_id"] = "1001"
+                    docs.append(Document(page_content=c["page_content"], metadata=meta))
+                docs = filter_complex_metadata(docs)
+                if patient_store is not None and hasattr(patient_store, "add_documents"):
+                    patient_store.add_documents(docs)
+                registry["1001"] = {
+                    "pdf_path": "sample_patient_report.pdf",
+                    "chunk_count": len(docs),
+                    "file_name": "sample_patient_report (NSTEMI Cardiac Case)"
+                }
+                save_registry(registry)
+                print(f"✓ Initialized sample patient 1001 ({len(docs)} chunks) into registry and vector store.")
+            except Exception as e:
+                print(f"Warning initializing sample patient: {e}")

@@ -6,7 +6,7 @@ from pathlib import Path
 from src.pipeline.graph import run_pipeline, run_pipeline_text, get_pipeline
 from src.utils.config import get_store_count
 from src.ingestion.patient_manager import (
-    index_patient_pdf, get_patient_list, load_registry
+    index_patient_pdf, get_patient_list, load_registry, ensure_sample_patient
 )
 from src.ingestion.reference_loader import load_reference_path
 from langchain_community.vectorstores.utils import filter_complex_metadata
@@ -46,6 +46,7 @@ pipeline, embedder, vector_stores = get_pipeline()
 patient_store = vector_stores["patient_records"]
 pharma_store  = vector_stores["pharma_guidelines"]
 trial_store   = vector_stores["clinical_trials"]
+ensure_sample_patient(patient_store)
 print("Ready.")
 
 MODE = "Local (Ollama)" if os.getenv("USE_LOCAL_MODELS", "true").lower() == "true" else "Cloud (OpenRouter)"
