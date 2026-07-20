@@ -27,8 +27,13 @@ def transcribe_node(state):
     if state.get("transcribed_query", "").strip():
         print(f"[Node 1 - Transcribe] Pre-filled: {state['transcribed_query']}")
         return state
+    audio_path = state.get("audio_path")
+    import os
+    if not audio_path or not str(audio_path).strip() or not os.path.exists(str(audio_path)):
+        print("[Node 1 - Transcribe] No audio or text query provided.")
+        return {**state, "transcribed_query": ""}
     transcriber = config.get_stt()
-    result = transcriber.transcribe(state['audio_path'])
+    result = transcriber.transcribe(audio_path)
     print(f"[Node 1 - Transcribe] {result['text']}")
     return {**state ,"transcribed_query" : result["text"]}
 

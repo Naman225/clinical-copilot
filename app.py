@@ -330,11 +330,20 @@ def _run(audio_path, text, patient_id):
             pd.DataFrame(),
             "",
         )
+    has_text = bool(text and str(text).strip())
+    has_audio = bool(audio_path and str(audio_path).strip() and os.path.exists(str(audio_path)))
+    if not has_text and not has_audio:
+        return (
+            "Please enter a clinical question in the text box below or record a voice query before clicking 'Get answer'.",
+            _status_banner("warning", "No query provided", "Please enter a text question or record a voice query before submitting."),
+            pd.DataFrame(),
+            "",
+        )
     try:
-        if audio_path:
+        if has_audio:
             result = _run_voice_pipeline(audio_path=audio_path, patient_id=patient_id)
         else:
-            result = run_pipeline_text(text_query=text, patient_id=str(patient_id))
+            result = run_pipeline_text(text_query=str(text).strip(), patient_id=str(patient_id))
 
         return (
             result["answer"],
