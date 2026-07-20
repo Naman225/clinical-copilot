@@ -479,20 +479,13 @@ CSS = """
 
 /* answer panel */
 #answer-box textarea {
-    font-size: 0.98rem !important;
-    line-height: 1.8 !important;
-    background: #1e293b !important;
-    color: #f8fafc !important;
-    border: 1px solid #334155 !important;
+    font-size: 0.95rem !important;
+    line-height: 1.75 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0 !important;
     border-radius: 10px !important;
-    padding: 18px 20px !important;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.25) !important;
-}
-#answer-box label span {
-    color: #38bdf8 !important;
-    font-weight: 700 !important;
-    font-size: 0.9rem !important;
-    letter-spacing: 0.05em !important;
+    padding: 14px !important;
 }
 
 /* primary buttons */
@@ -584,7 +577,7 @@ with gr.Blocks(title="Clinical Co-Pilot", css=CSS, theme=gr.themes.Soft(primary_
                 )
 
             with gr.Column(scale=7):
-                query_meta = gr.HTML("", visible=False)
+                query_meta = gr.HTML("")
                 answer_out = gr.Textbox(
                     label="Clinical answer",
                     lines=14,
@@ -681,13 +674,14 @@ with gr.Blocks(title="Clinical Co-Pilot", css=CSS, theme=gr.themes.Soft(primary_
 
     def _ask_and_show_transcript(audio, text, patient_id):
         ans, meta, src, trans = _run(audio, text, patient_id)
+        has_sources = isinstance(src, pd.DataFrame) and len(src) > 0
         return (
             ans,
-            gr.update(value=meta, visible=False),
+            meta,
             src,
             trans,
             gr.update(value=trans, visible=bool(trans)),
-            gr.update(visible=False),
+            gr.update(visible=has_sources),
         )
 
     text_btn.click(
