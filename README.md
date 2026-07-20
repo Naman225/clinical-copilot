@@ -24,6 +24,13 @@ short_description: Multimodal Clinical RAG Co-Pilot with Voice & Text Queries
 [![Gradio](https://img.shields.io/badge/Gradio-UI-orange?logo=gradio)](https://gradio.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+<br/>
+
+### 🚀 **[Try the Live Interactive Demo on Hugging Face Spaces!](https://huggingface.co/spaces/Naman225/clinical-copilot)** 🌐
+> **Demo URL:** [https://huggingface.co/spaces/Naman225/clinical-copilot](https://huggingface.co/spaces/Naman225/clinical-copilot)
+
+<br/>
+
 *Ask clinical questions about your patients — by voice or text — and get source-cited, verified answers grounded exclusively in uploaded medical records, drug guidelines, and clinical trial data.*
 
 </div>
@@ -249,14 +256,6 @@ python -m src.ingestion.ingest
 ## ⚠️ Disclaimer
 
 > This system is a **research prototype** for clinical decision support. It is **NOT** a certified medical device. All outputs must be reviewed by qualified healthcare professionals. Never use AI-generated responses as the sole basis for clinical decisions. Patient safety is paramount — always exercise clinical judgment.
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
-
----
 
 <div align="center">
 

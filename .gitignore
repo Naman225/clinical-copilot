@@ -64,6 +64,7 @@ docs/_build/
 .env.local
 .env.*.local
 *.env
+!.env.example
 secrets.json
 
 # Operating System files
@@ -76,10 +77,11 @@ cpu_extracted_cache.json
 extracted_images/
 
 ## Evaluation artifacts (regenerable, large, reveal patient data)
-pipeline_cache.json
-ragas_raw_results.csv
-ragas_results.json
+pipeline_cache*
+ragas_raw_results*
+ragas_results*
 evaluation_dataset.json
+*cache*.json
 
 ## Legacy local vector store (now using Pinecone cloud)
 chroma_db/
